@@ -5,10 +5,10 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { getDetailServer } from "@/services/server";
-import { detailPost, commentPost, toggleLikePost, checkLikePost } from "@/services/post";
+import { detailPost, commentPost, toggleLikePost, checkLikePost, deletePost, deleteComment } from "@/services/post";
 import ConnectWallet from "@/components/connectWallet";
+import { jwtDecode } from "jwt-decode";
 
-// Sebaiknya dipindah ke components/HeartIcon.jsx karena dipakai juga di halaman profil
 const HeartIcon = ({ filled, size = 20 }) => (
     <svg
         width={size}
@@ -59,11 +59,13 @@ const DetailPost = () => {
     const [loading, setLoading] = useState(true)
     const [commentText, setCommentText] = useState("")
     const [submitting, setSubmitting] = useState(false)
+    const [userHash, setUserHash] = useState(null)
 
     const router = useRouter()
     const { postId } = router.query
 
     const comments = post?.comments ?? []
+    const isOwner = Boolean(userHash) && post?.user === userHash
 
     const fetchPost = async () => {
         const response = await detailPost(postId)
@@ -104,6 +106,43 @@ const DetailPost = () => {
         }
         setSubmitting(false)
     }
+
+    const handleDeletePost = async() => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this post?")
+        if(confirmDelete) {
+            const response = await deletePost(postId)
+            if (!response) {
+                toast.error("Failed to delete post")
+            } else {
+                toast.success("Post deleted successfully")
+                router.back()
+            }
+        }
+    }
+
+    const handleDeleteComment = async(commentId) => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this comment?")
+        if(confirmDelete) {
+            const response = await deleteComment(commentId)
+            if (!response) {
+                toast.error("Failed to delete comment")
+            } else {
+                toast.success("Comment deleted successfully")
+                fetchPost()
+            }
+        }
+    }
+
+    useEffect(() => {
+        const token = Cookies.get("token")
+        if (!token) return
+        try {
+            const payload = jwtDecode(atob(token))
+            setUserHash(payload.hash ?? null)
+        } catch (err) {
+            setUserHash(null)
+        }
+    }, [])
 
     useEffect(() => {
         if (!postId) return
@@ -152,13 +191,10 @@ const DetailPost = () => {
                             Back
                         </button>
 
-                        {/* post */}
                         <div className="mt-4 border-b border-gray-300 pb-6">
-                            {/* header */}
                             <Link href={`/${post.user}`} className="flex gap-2 items-center">
                                 <div className="bg-blue-300 rounded-4xl p-4"></div>
 
-                                {/* user info */}
                                 <div className="text-xs">
                                     <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
                                     <p className="flex gap-2">
@@ -169,7 +205,6 @@ const DetailPost = () => {
                                 </div>
                             </Link>
 
-                            {/* content */}
                             {post?.image ? (
                                 <div className="mt-2 flex flex-col md:flex-row">
                                     <div className="flex justify-between flex-row md:flex-col py-3 md:px-3 gap-6 order-2 md:order-1">
@@ -192,9 +227,20 @@ const DetailPost = () => {
                                             </Link>
                                         </div>
 
-                                        <button className="cursor-pointer">
-                                            <Image src="/icon/share.png" alt="Share" width={20} height={20} />
-                                        </button>
+                                        <div className="flex flex-row md:flex-col items-center gap-6">
+                                            <button className="cursor-pointer">
+                                                <Image src="/icon/share.png" alt="Share" width={20} height={20} />
+                                            </button>
+                                            {isOwner && (
+                                                <button
+                                                    type="button"
+                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                    onClick={handleDeletePost}
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="bg-red-200 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
                                 </div>
@@ -220,15 +266,25 @@ const DetailPost = () => {
                                             </Link>
                                         </div>
 
-                                        <button className="cursor-pointer">
-                                            <Image src="/icon/share.png" alt="Share" width={15} height={15} />
-                                        </button>
+                                        <div className="flex items-center gap-6">
+                                            <button className="cursor-pointer">
+                                                <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                                            </button>
+                                            {isOwner && (
+                                                <button
+                                                    onClick={handleDeletePost}
+                                                    type="button"
+                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* form komentar */}
                         <form onSubmit={handlerComment} className="mt-4 flex flex-col gap-2">
                             <textarea
                                 value={commentText}
@@ -250,7 +306,6 @@ const DetailPost = () => {
                             </div>
                         </form>
 
-                        {/* daftar komentar */}
                         <div className="mt-6 flex flex-col gap-4">
                             {comments.length === 0 ? (
                                 <p className="text-xs text-gray-500">No comments yet. Be the first to comment.</p>
@@ -266,6 +321,15 @@ const DetailPost = () => {
                                                     {truncateAddress(c.user)}
                                                 </Link>
                                                 <span className="opacity-50">{formatTimestamp(c.createdAt)}</span>
+                                                {Boolean(userHash) && c.user === userHash && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(c.id)}
+                                                        type="button"
+                                                        className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
                                             </p>
                                             <p className="mt-1 whitespace-pre-line break-words">{c.text}</p>
                                         </div>

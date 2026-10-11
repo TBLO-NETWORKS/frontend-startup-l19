@@ -8,16 +8,12 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import ConnectWallet from "@/components/connectWallet"
 import { setRegister, setLogin } from "@/services/auth";
 import { useState, useEffect } from "react";
-import { generateProof } from "@/lib/zk/generateProof";
 
 const Login = () => {
     const { address, isDisconnected } = useAccount();
     const [alreadyRegister, setAlreadyRegister] = useState(false)
-    const [alreadyGenerateProof, setAlreadyGenerateProof] = useState(false)
     const [alreadyLogin, setAlreadyLogin] = useState(false)
-
-    const [proof, setProof] = useState(null)
-    const [publicSignals, setPublicSignals] = useState(null)
+    const [hashAddress, setHashAddress] = useState("")
 
     const router = useRouter()
 
@@ -35,40 +31,25 @@ const Login = () => {
             setAlreadyRegister(true)
         }
     }
-    const handleGenerateProof = async() => {
-        try {
-            if(!address) {
-                toast.error("u must register before generating the proof!")
-                return
-            }
-            const { proof, publicSignals } = await generateProof(address)
 
-            setProof(proof)
-            setPublicSignals(publicSignals)
-
-            setAlreadyRegister(true)
-            setAlreadyGenerateProof(true)
-            toast.success("Success generating proof!")
-        } catch (error) {
-            toast.error(error.message)
-        }
-    }
     const handleLogin = async() => {
-        if(!proof || !publicSignals) {
-            toast.error("u must generating proof before login!")
+        if(!address) {
+            toast.error("connect ur wallet first!")
             return
         }
 
-        const response = await setLogin({ proof, publicSignals })
+        const response = await setLogin({ address })
         if(response.error) {
             toast.error(response.message)
         } else {
             const token = response.data.data
             const tokenBase64 = btoa(token)
+
             Cookies.set("token", tokenBase64, { expires: 7 })
+
             setAlreadyLogin(true)
             toast.success("login success!")
-            router.push(`/${publicSignals[0]}`)
+            router.push(`/`)
         }
     }
 
@@ -78,10 +59,12 @@ const Login = () => {
 
         try {
             const jwtToken = atob(token)
-            jwtDecode(jwtToken)
+            const payload = jwtDecode(jwtToken)
+
+            const hashFromPayload = payload.hash
+            setHashAddress(hashFromPayload)
 
             setAlreadyRegister(true)
-            setAlreadyGenerateProof(true)
             setAlreadyLogin(true)
         } catch (error) {
             console.error("Invalid token cookie", error)
@@ -93,10 +76,7 @@ const Login = () => {
         onDisconnect() {
             Cookies.remove("token")
             setAlreadyRegister(false)
-            setAlreadyGenerateProof(false)
             setAlreadyLogin(false)
-            setProof(null)
-            setPublicSignals(null)
         },
     })
 
@@ -126,7 +106,6 @@ const Login = () => {
                         <h2 className="text-xs sm:text-sm">
                             {isDisconnected ? <span className="bg-red-400 text-white p-1 rounded-sm">Connect Wallet</span> : <span className="bg-green-400 text-white p-1 rounded-sm">Connect Wallet</span>} -
                             {alreadyRegister ? <span className="bg-green-400 text-white p-1 rounded-sm">Register</span> : <span className="bg-red-400 text-white p-1 rounded-sm">Register</span>} - 
-                            {alreadyGenerateProof ? <span className="bg-green-400 text-white p-1 rounded-sm">Create Proof</span> : <span className="bg-red-400 text-white p-1 rounded-sm">Create Proof</span>} - 
                             {alreadyLogin ? <span className="bg-green-400 text-white p-1 rounded-sm">Login</span> : <span className="bg-red-400 text-white p-1 rounded-sm">Login</span>}
                         </h2>
                     </div>
@@ -157,22 +136,6 @@ const Login = () => {
                             Register with Your Wallet
                         </button>
                         {alreadyRegister ? <p className="text-green-500 mt-1 font-semibold text-sm">registered successfully!</p> : <p></p>}
-                    </div>
-                    <hr className="border-gray-300 mt-4" />
-
-                    {/* create proof */}
-                    <div className="mt-4">
-                        <button onClick={handleGenerateProof} className="bg-[#4272FC] cursor-pointer text-sm text-white py-2 px-2 rounded-md hover:bg-[#3a68e6]">
-                            Generate Proof
-                        </button>
-
-                        <div className="mt-2 w-full py-2 px-3 rounded-md text-sm md:text-base">
-                            <p className="text-xs md:text-sm font-semibold">Proof:</p>
-                            <pre className="bg-gray-100 text-xs md:text-sm p-4 overflow-auto">{JSON.stringify(proof ? proof : "ur not generating yet")}</pre>
-                
-                            <p className="text-xs md:text-sm font-semibold mt-2">Public Signals:</p>
-                            <pre className="bg-gray-100 text-xs md:text-sm p-4 overflow-auto">{JSON.stringify(publicSignals ? publicSignals : "ur not generating yet")}</pre>
-                        </div>
                     </div>
                     <hr className="border-gray-300 mt-4" />
 

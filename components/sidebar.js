@@ -48,7 +48,7 @@ const Sidebar = () => {
 
   useEffect(() => {
     checkToken()
-  }, [])
+  }, [router.asPath])
   return (
     <>
       <div

@@ -1,6 +1,8 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useAccountEffect } from 'wagmi';
+import { useEffect } from 'react';
+import Cookies from 'js-cookie';
 
-// Isi data partner di sini. Item dengan `name` kosong tidak akan ditampilkan.
 const PARTNERS = [
   { name: '', link: '#', category: '' },
   { name: '', link: '#', category: '' },
@@ -9,11 +11,17 @@ const PARTNERS = [
 
 const ConnectWallet = () => {
   const partners = PARTNERS.filter((p) => p.name);
+    const { status } = useAccount();
+
+  useAccountEffect({
+    onDisconnect() {
+      Cookies.remove('token');
+      window.location.reload();
+    },
+  });
 
   return (
-    // Mobile: disembunyikan. Desktop (md ke atas): tampil sebagai kolom sidebar.
     <aside className="hidden md:block md:w-1/3 md:max-w-xs lg:max-w-sm md:shrink-0">
-      {/* sticky (bukan fixed) agar mengikuti lebar kolom & tidak overflow */}
       <div className="w-full space-y-4 md:sticky md:top-6">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">

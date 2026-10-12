@@ -222,7 +222,7 @@ const DetailPost = () => {
                                                 <Image src="/icon/comment.png" alt="Comments" width={20} height={20} />
                                                 <p className="text-[10px]">{comments.length}</p>
                                             </div>
-                                            <Link href={`/reward/${post.id}`} className="cursor-pointer">
+                                            <Link href={`/post/${post.id}/reward`} className="cursor-pointer">
                                                 <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
                                             </Link>
                                         </div>
@@ -261,7 +261,7 @@ const DetailPost = () => {
                                                 <Image src="/icon/comment.png" alt="Comments" width={15} height={15} />
                                                 <p className="text-[10px]">{comments.length}</p>
                                             </div>
-                                            <Link href={`/reward/${post.id}`} className="cursor-pointer">
+                                            <Link href={`/post/${post.id}/reward`} className="cursor-pointer">
                                                 <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
                                             </Link>
                                         </div>

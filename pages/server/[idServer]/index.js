@@ -298,7 +298,7 @@ const DetailServer = () => {
                                                         <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
                                                         <p className="text-[10px]">{commentCount}</p>
                                                     </Link>
-                                                    <Link href={`/reward/123`} className="cursor-pointer">
+                                                    <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
                                                     </Link>
                                                 </div>
@@ -326,7 +326,7 @@ const DetailServer = () => {
                                                         <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
                                                         <p className="text-[10px]">{commentCount}</p>
                                                     </Link>
-                                                    <Link href={`/reward/123`} className="cursor-pointer">
+                                                    <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
                                                     </Link>
                                                 </div>

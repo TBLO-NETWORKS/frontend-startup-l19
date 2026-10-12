@@ -146,15 +146,6 @@ const Wallet = () => {
         }
     }
 
-    const handlerShare = async () => {
-        try {
-            await navigator.clipboard.writeText(window.location.href)
-            toast.success("Link copied")
-        } catch (err) {
-            toast.error("Failed to copy link")
-        }
-    }
-
     useEffect(() => {
         if (hashAddress) {
             fetchPosts()
@@ -295,18 +286,20 @@ const Wallet = () => {
                                         Edit
                                     </Link>
                                 ) : (
+                                    <>
                                     <button
                                         className="flex-1 text-xs font-medium py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-center transition-colors cursor-pointer"
                                     >
                                         Follow
                                     </button>
+                                    <Link
+                                        href=""
+                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 text-center transition-colors cursor-pointer"
+                                    >
+                                        Chat
+                                    </Link>
+                                    </>
                                 )}
-                                <button
-                                    onClick={handlerShare}
-                                    className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 text-center transition-colors cursor-pointer"
-                                >
-                                    Share
-                                </button>
                             </div>
                         </div>
                     </div>

@@ -89,3 +89,12 @@ export async function deleteComment(commentId) {
         token: true
     });
 }
+
+export async function checkManyComments(postId) {
+    const url = `${ROOT_API}/post/${postId}/comment/check`;
+    return callApi({
+        url,
+        method: "GET",
+        token: true
+    });
+}

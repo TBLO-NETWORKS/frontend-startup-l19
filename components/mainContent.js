@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
-import { getAllPosts, toggleLikePost, checkLikePost } from "@/services/post"
+import { getAllPosts, toggleLikePost, checkLikePost, checkManyComments } from "@/services/post"
 
 const HeartIcon = ({ filled, size = 20 }) => (
   <svg
@@ -46,6 +46,7 @@ const DotsIcon = () => (
 const MainContent = () => {
   const [posts, setPosts] = useState([])
   const [likedPosts, setLikedPosts] = useState({})
+  const [commentCounts, setCommentCounts] = useState({})
 
   const truncateAddress = (address, start = 6, end = 12) => {
     if (!address) return ""
@@ -62,6 +63,21 @@ const MainContent = () => {
     setLikedPosts(Object.fromEntries(results))
   }
 
+  const fetchCommentCounts = async (postList) => {
+    const results = await Promise.all(
+      postList.map(async (post) => {
+        try {
+          const res = await checkManyComments(post.id)
+          return [post.id, res ? Number(res.data) || 0 : 0]
+        } catch (err) {
+          console.error(`Failed to fetch comments for post ${post.id}`, err)
+          return [post.id, 0]
+        }
+      })
+    )
+    setCommentCounts(Object.fromEntries(results))
+  }
+
   const fetchPosts = async () => {
     const response = await getAllPosts()
     if (!response) {
@@ -69,6 +85,7 @@ const MainContent = () => {
     } else {
       setPosts(response.data)
       fetchLikeStatuses(response.data)
+      fetchCommentCounts(response.data)
     }
   }
 
@@ -153,6 +170,7 @@ const MainContent = () => {
         <div className="mt-5 flex flex-col gap-6">
           {posts?.map((post) => {
             const isLiked = Boolean(likedPosts[post.id])
+            const commentCount = commentCounts[post.id] ?? 0
 
             return (
               <div key={post.id} className="border-b border-gray-200 pb-6">
@@ -187,8 +205,9 @@ const MainContent = () => {
                           <HeartIcon filled={isLiked} size={20} />
                           <p className="text-[10px]">{post.likesCount}</p>
                         </button>
-                        <Link href={`/post/${post.id}`} className="cursor-pointer">
+                        <Link href={`/post/${post.id}`} className="cursor-pointer flex flex-col items-center gap-1">
                           <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
+                          <p className="text-[10px]">{commentCount}</p>
                         </Link>
                         <Link href={`/reward/123`} className="cursor-pointer">
                           <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
@@ -216,7 +235,7 @@ const MainContent = () => {
                         </button>
                         <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
                           <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                          <p className="text-[10px]">456</p>
+                          <p className="text-[10px]">{commentCount}</p>
                         </Link>
                         <Link href={`/reward/123`} className="cursor-pointer">
                           <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />

@@ -7,7 +7,7 @@ import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
 
 import { dataUser } from "@/services/user";
-import { getServerPosts, toggleLikePost, checkLikePost } from "@/services/post";
+import { getServerPosts, toggleLikePost, checkLikePost, checkManyComments } from "@/services/post";
 import { getDetailServer, joinServer, leaveServer } from "@/services/server"
 import ConnectWallet from "@/components/connectWallet"
 
@@ -30,7 +30,8 @@ const HeartIcon = ({ filled, size = 20 }) => (
 const DetailServer = () => {
     const [server, setServer] = useState({})
     const [serverPosts, setServerPosts] = useState([])
-    const [likedPosts, setLikedPosts] = useState({}) // { [postId]: boolean }
+    const [likedPosts, setLikedPosts] = useState({})
+    const [commentCounts, setCommentCounts] = useState({})
     const [user, setUser] = useState("")
     const [loading, setLoading] = useState(false)
 
@@ -48,7 +49,7 @@ const DetailServer = () => {
 
     const fetchDetailServer = async() => {
         const response = await getDetailServer(idServer)
-        
+
         if(!response) {
             toast.error("Failed to fetch servers!")
         } else {
@@ -66,6 +67,21 @@ const DetailServer = () => {
         setLikedPosts(Object.fromEntries(results))
     }
 
+    const fetchCommentCounts = async (postList) => {
+        const results = await Promise.all(
+            postList.map(async (post) => {
+                try {
+                    const res = await checkManyComments(post.id)
+                    return [post.id, res ? Number(res.data) || 0 : 0]
+                } catch (err) {
+                    console.error(`Failed to fetch comments for post ${post.id}`, err)
+                    return [post.id, 0]
+                }
+            })
+        )
+        setCommentCounts(Object.fromEntries(results))
+    }
+
     const fetchServerPosts = async() => {
         const response = await getServerPosts(idServer)
 
@@ -74,6 +90,7 @@ const DetailServer = () => {
         } else {
             setServerPosts(response.data)
             fetchLikeStatuses(response.data)
+            fetchCommentCounts(response.data)
         }
     }
 
@@ -240,26 +257,23 @@ const DetailServer = () => {
                                 <Image className="text-blue-500" src="/icon/add_blue.png" alt="Add" width={20} height={15} />
                                 Create Post
                             </Link>
-                        ) : 
+                        ) :
                         (
                             <div></div>
                         )
                         }
                     </div>
 
-                    {/* server posts */}
                     <div className="mt-8 flex flex-col gap-6">
                         {serverPosts?.map((post) => {
                             const isLiked = Boolean(likedPosts[post.id])
+                            const commentCount = commentCounts[post.id] ?? 0
 
                             return (
                                 <div key={post.id} className="border-b border-gray-300 pb-6">
-                                    {/* header */}
                                     <Link href={`/${post.user}`} className="flex gap-2 items-center">
-                                        {/* <Image /> */}
                                         <div className="bg-blue-300 rounded-4xl p-4"></div>
 
-                                        {/* user info */}
                                         <div className="text-xs">
                                             <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
                                             <p className="opacity-50">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</p>
@@ -267,7 +281,6 @@ const DetailServer = () => {
                                         </div>
                                     </Link>
 
-                                    {/* content */}
                                     {post.image ? (
                                         <div className="mt-2 flex flex-col md:flex-row">
                                             <div className="flex justify-between flex-row md:flex-col py-3 md:px-3 gap-6 order-2 md:order-1">
@@ -281,8 +294,9 @@ const DetailServer = () => {
                                                         <HeartIcon filled={isLiked} size={20} />
                                                         <p className="text-[10px]">{post.likesCount}</p>
                                                     </button>
-                                                    <Link href={`/post/${post.id}`} className="cursor-pointer">
+                                                    <Link href={`/post/${post.id}`} className="cursor-pointer flex md:flex-col items-center gap-1">
                                                         <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
+                                                        <p className="text-[10px]">{commentCount}</p>
                                                     </Link>
                                                     <Link href={`/reward/123`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
@@ -310,7 +324,7 @@ const DetailServer = () => {
                                                     </button>
                                                     <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
                                                         <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                                                        <p className="text-[10px]">456</p>
+                                                        <p className="text-[10px]">{commentCount}</p>
                                                     </Link>
                                                     <Link href={`/reward/123`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />

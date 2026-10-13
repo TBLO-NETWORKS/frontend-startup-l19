@@ -293,7 +293,7 @@ const Wallet = () => {
                                         Follow
                                     </button>
                                     <Link
-                                        href=""
+                                        href={address ? `/chat/${[address, hashAddress].sort().join("_")}` : "#"}
                                         className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 text-center transition-colors cursor-pointer"
                                     >
                                         Chat

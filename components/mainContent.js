@@ -126,19 +126,19 @@ const MainContent = () => {
   const getName = (post) => (post.displayName ? post.displayName : truncateAddress(post.user))
 
   return (
-    <div className="w-full md:w-2/3 border-0 md:border-r px-2">
+    <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
       <div className="flex items-center justify-between px-1 py-3">
         <Link
           href="/post/create"
           aria-label="Create post"
-          className="w-6 h-6 rounded-md border-2 border-gray-900 flex items-center justify-center text-gray-900"
+          className="w-6 h-6 rounded-md border-2 border-gray-900 dark:border-white flex items-center justify-center text-gray-900 dark:text-white"
         >
           <PlusIcon size={12} />
         </Link>
 
         <h2 className="bg-orange-500 text-white px-1 font-bold">TBLONETWORKS</h2>
 
-        <div className="flex items-center gap-4 text-gray-900">
+        <div className="flex items-center gap-4 text-gray-900 dark:text-white">
           <Link href="/notifications" aria-label="Notifications">
             <HeartIcon filled={false} size={22} />
           </Link>
@@ -148,11 +148,11 @@ const MainContent = () => {
       <div className="mt-2 md:mt-4">
         <Link
           href="/post/create"
-          className="flex flex-col gap-3 py-3 px-3 md:px-4 bg-gray-100 text-sm rounded-xl"
+          className="flex flex-col gap-3 py-3 px-3 md:px-4 bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:shadow-md dark:shadow-black/40 text-sm rounded-xl transition-colors"
         >
           <div className="flex justify-between items-center w-full">
-            <div className="opacity-50 flex gap-2 items-center">
-              <Image src="/icon/write.png" alt="Create Post" width={20} height={20} />
+            <div className="opacity-50 dark:opacity-80 flex gap-2 items-center">
+              <Image src="/icon/write.png" alt="Create Post" width={20} height={20} className="dark:invert" />
               <p>Say something...</p>
             </div>
 
@@ -161,8 +161,8 @@ const MainContent = () => {
 
           <div className="flex justify-between w-full">
             <div className="flex gap-3 items-center">
-              <Image src="/icon/image.png" alt="Create Post" width={20} height={20} />
-              <Image src="/icon/camera.png" alt="Create Post" width={20} height={20} />
+              <Image src="/icon/image.png" alt="Create Post" width={20} height={20} className="dark:invert" />
+              <Image src="/icon/camera.png" alt="Create Post" width={20} height={20} className="dark:invert" />
             </div>
           </div>
         </Link>
@@ -173,21 +173,21 @@ const MainContent = () => {
             const commentCount = commentCounts[post.id] ?? 0
 
             return (
-              <div key={post.id} className="border-b border-gray-200 pb-6">
+              <div key={post.id} className="border-b border-gray-200 dark:border-gray-700 pb-6">
                 <div className="flex items-start justify-between gap-2">
                   <Link href={`/${post.user}`} className="flex gap-3 items-center">
-                    <div className="p-4 bg-blue-300 rounded-full"></div>
+                    <div className="p-4 bg-blue-300 dark:bg-blue-400 rounded-full"></div>
 
                     <div className="text-xs">
-                      <h2 className="font-semibold text-xs truncate">{getName(post)}</h2>
-                      <p className="opacity-50 text-[11px]">
+                      <h2 className="font-semibold text-xs truncate dark:text-white">{getName(post)}</h2>
+                      <p className="opacity-50 dark:opacity-100 dark:text-gray-400 text-[11px]">
                         {post.createdAt ? formatTimestamp(post.createdAt) : "-"}
                       </p>
-                      <p className="mt-1 text-sm">{post.caption}</p>
+                      <p className="mt-1 text-sm dark:text-gray-100">{post.caption}</p>
                     </div>
                   </Link>
 
-                  <button className="cursor-pointer text-gray-500 shrink-0" aria-label="More options">
+                  <button className="cursor-pointer text-gray-500 dark:text-gray-300 shrink-0" aria-label="More options">
                     <DotsIcon />
                   </button>
                 </div>
@@ -203,11 +203,11 @@ const MainContent = () => {
                           aria-pressed={isLiked}
                         >
                           <HeartIcon filled={isLiked} size={20} />
-                          <p className="text-[10px]">{post.likesCount}</p>
+                          <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                         </button>
                         <Link href={`/post/${post.id}`} className="cursor-pointer flex flex-col items-center gap-1">
-                          <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
-                          <p className="text-[10px]">{commentCount}</p>
+                          <Image src="/icon/comment.png" alt="Comment" width={20} height={20} className="dark:invert" />
+                          <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                         </Link>
                         <Link href={`/post/${post.id}`} className="cursor-pointer">
                           <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
@@ -215,10 +215,10 @@ const MainContent = () => {
                       </div>
 
                       <button className="cursor-pointer">
-                        <Image src="/icon/share.png" alt="Share" width={20} height={20} />
+                        <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
                       </button>
                     </div>
-                    <div className="bg-red-200 rounded-2xl flex-1 h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:max-w-[375px]"></div>
+                    <div className="bg-red-200 dark:bg-gray-700 dark:border dark:border-gray-600 rounded-2xl flex-1 h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:max-w-[375px]"></div>
                   </div>
                 ) : (
                   <div className="mt-2">
@@ -231,11 +231,11 @@ const MainContent = () => {
                           aria-pressed={isLiked}
                         >
                           <HeartIcon filled={isLiked} size={15} />
-                          <p className="text-[10px]">{post.likesCount}</p>
+                          <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                         </button>
                         <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
-                          <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                          <p className="text-[10px]">{commentCount}</p>
+                          <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
+                          <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                         </Link>
                         <Link href={`/post/${post.id}`} className="cursor-pointer">
                           <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
@@ -243,7 +243,7 @@ const MainContent = () => {
                       </div>
 
                       <button className="cursor-pointer">
-                        <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                        <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
                       </button>
                     </div>
                   </div>

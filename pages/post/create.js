@@ -81,44 +81,44 @@ const CreatePost = () => {
     }
     return (
     <div className="flex flex-col gap-2 md:flex-row">
-      <div className="w-full md:w-2/3 border-0 md:border-r px-2">
+      <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
         <div className="flex items-center justify-between px-1 py-3">
-          <button onClick={() => router.back()} aria-label="Back" className="text-gray-900 cursor-pointer">
+          <button onClick={() => router.back()} aria-label="Back" className="text-gray-900 dark:text-white cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <h1 className="text-base font-semibold text-gray-900">Create Post</h1>
+          <h1 className="text-base font-semibold text-gray-900 dark:text-white">Create Post</h1>
           <span className="w-[22px]"></span>
         </div>
 
         <div className="mt-1">
-          <p className="text-xs opacity-50 px-1">say it all — your data stays secure</p>
+          <p className="text-xs opacity-50 dark:opacity-100 dark:text-gray-400 px-1">say it all — your data stays secure</p>
 
-          <div className="mt-3 flex flex-col gap-3 py-3 px-3 md:px-4 bg-gray-100 rounded-xl">
+          <div className="mt-3 flex flex-col gap-3 py-3 px-3 md:px-4 bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:shadow-md dark:shadow-black/40 rounded-xl transition-colors">
             <div className="flex items-start justify-between gap-3">
               <div className="flex gap-2 items-start flex-1">
-                <span className="mt-1 opacity-50 shrink-0">
-                  <Image src="/icon/write.png" alt="Write" width={20} height={20} />
+                <span className="mt-1 opacity-50 dark:opacity-80 shrink-0">
+                  <Image src="/icon/write.png" alt="Write" width={20} height={20} className="dark:invert" />
                 </span>
                 <textarea
                   rows={3}
                   placeholder="What's on your mind?"
-                  className="bg-transparent w-full resize-none text-sm placeholder:text-sm focus:outline-none py-1"
+                  className="bg-transparent w-full resize-none text-sm placeholder:text-sm dark:text-white dark:placeholder:text-gray-400 focus:outline-none py-1"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                 />
               </div>
 
-              <span className="text-gray-500 shrink-0 mt-1">
+              <span className="text-gray-500 dark:text-gray-300 shrink-0 mt-1">
                 <DotsIcon />
               </span>
             </div>
 
             <div className="flex justify-between items-center w-full">
-              <div className="flex gap-3 items-center opacity-40 cursor-not-allowed" title="Image upload is not available yet">
-                <Image src="/icon/image.png" alt="Image" width={20} height={20} />
-                <Image src="/icon/camera.png" alt="Camera" width={20} height={20} />
+              <div className="flex gap-3 items-center opacity-40 dark:opacity-60 cursor-not-allowed" title="Image upload is not available yet">
+                <Image src="/icon/image.png" alt="Image" width={20} height={20} className="dark:invert" />
+                <Image src="/icon/camera.png" alt="Camera" width={20} height={20} className="dark:invert" />
               </div>
 
               <button
@@ -131,24 +131,24 @@ const CreatePost = () => {
           </div>
         </div>
 
-        <hr className="mt-6 text-gray-200" />
+        <hr className="mt-6 text-gray-200 dark:text-gray-700" />
 
-        <div className="mt-6 flex flex-col gap-6 opacity-75">
-          <p className="text-xs opacity-50 px-1">Preview</p>
+        <div className="mt-6 flex flex-col gap-6 opacity-75 dark:opacity-100">
+          <p className="text-xs opacity-50 dark:opacity-100 dark:text-gray-400 px-1">Preview</p>
 
-          <div className="border-b border-gray-200 pb-6">
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
             <div className="flex items-start justify-between gap-2">
               <Link href="/fauzanchenko" className="flex gap-3 items-start min-w-0">
-                <div className="w-10 h-10 shrink-0 bg-blue-300 rounded-full"></div>
+                <div className="w-10 h-10 shrink-0 bg-blue-300 dark:bg-blue-400 rounded-full"></div>
 
                 <div className="text-xs min-w-0">
-                  <h2 className="font-semibold text-xs truncate">{account.displayName ? account.displayName : truncateAddress(account.hash)}</h2>
-                  <p className="opacity-50 text-[11px]">Now</p>
-                  <p className="mt-1 text-sm break-words">{caption}</p>
+                  <h2 className="font-semibold text-xs truncate dark:text-white">{account.displayName ? account.displayName : truncateAddress(account.hash)}</h2>
+                  <p className="opacity-50 dark:opacity-100 dark:text-gray-400 text-[11px]">Now</p>
+                  <p className="mt-1 text-sm break-words dark:text-gray-100">{caption}</p>
                 </div>
               </Link>
 
-              <span className="text-gray-500 shrink-0">
+              <span className="text-gray-500 dark:text-gray-300 shrink-0">
                 <DotsIcon />
               </span>
             </div>
@@ -157,11 +157,11 @@ const CreatePost = () => {
               <div className="flex gap-6">
                 <span className="flex items-center gap-1">
                   <HeartIcon size={15} />
-                  <p className="text-[10px]">0</p>
+                  <p className="text-[10px] dark:text-gray-200">0</p>
                 </span>
                 <span className="flex items-center gap-1">
-                  <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                  <p className="text-[10px]">0</p>
+                  <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
+                  <p className="text-[10px] dark:text-gray-200">0</p>
                 </span>
                 <span>
                   <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
@@ -169,7 +169,7 @@ const CreatePost = () => {
               </div>
 
               <span>
-                <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
               </span>
             </div>
           </div>

@@ -22,17 +22,17 @@ function ProfileRow({ label, value, placeholder, onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className="w-full flex items-center justify-between gap-4 py-3 border-b border-gray-200 text-left hover:bg-blue-50/60 transition-colors rounded-md px-2 -mx-2"
+            className="w-full flex items-center justify-between gap-4 py-3 border-b border-gray-200 dark:border-gray-600 text-left hover:bg-blue-50/60 dark:hover:bg-gray-700 transition-colors rounded-md px-2 -mx-2"
         >
-            <span className="text-sm text-gray-500 shrink-0">{label}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-300 shrink-0">{label}</span>
             <span
                 className={`flex-1 text-right text-sm truncate ${
-                    value ? "text-gray-900" : "text-gray-400"
+                    value ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-400"
                 }`}
             >
                 {value || placeholder}
             </span>
-            <ChevronRight className="w-4 h-4 text-blue-400 shrink-0" />
+            <ChevronRight className="w-4 h-4 text-blue-400 dark:text-blue-300 shrink-0" />
         </button>
     );
 }
@@ -43,9 +43,9 @@ function EditFieldModal({ open, label, value, placeholder, onSave, onClose, mult
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-gray-900/40 px-4">
-            <div className="w-full md:w-96 bg-white rounded-t-2xl md:rounded-2xl p-5 border border-gray-200 shadow-xl">
-                <h3 className="text-gray-900 text-sm font-medium mb-3">{label}</h3>
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-gray-900/40 dark:bg-black/70 px-4">
+            <div className="w-full md:w-96 bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl p-5 border border-gray-200 dark:border-gray-600 shadow-xl dark:shadow-black/50">
+                <h3 className="text-gray-900 dark:text-white text-sm font-medium mb-3">{label}</h3>
                 {multiline ? (
                     <textarea
                         autoFocus
@@ -53,7 +53,7 @@ function EditFieldModal({ open, label, value, placeholder, onSave, onClose, mult
                         value={draft}
                         placeholder={placeholder}
                         onChange={(e) => setDraft(e.target.value)}
-                        className="w-full resize-none rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        className="w-full resize-none rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm text-gray-900 dark:text-white dark:placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
                     />
                 ) : (
                     <input
@@ -62,14 +62,14 @@ function EditFieldModal({ open, label, value, placeholder, onSave, onClose, mult
                         value={draft}
                         placeholder={placeholder}
                         onChange={(e) => setDraft(e.target.value)}
-                        className="w-full rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        className="w-full rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm text-gray-900 dark:text-white dark:placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
                     />
                 )}
                 <div className="flex gap-2 mt-4">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 rounded-lg py-2 text-sm text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        className="flex-1 rounded-lg py-2 text-sm text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                         Close
                     </button>
@@ -91,9 +91,9 @@ function EditFieldModal({ open, label, value, placeholder, onSave, onClose, mult
 
 const EditProfile = () => {
     const [profile, setProfile] = useState(initialProfile);
-    const [originalProfile, setOriginalProfile] = useState(initialProfile); // <-- data asli dari server, buat placeholder
+    const [originalProfile, setOriginalProfile] = useState(initialProfile);
     const [avatar, setAvatar] = useState(null);
-    const [editing, setEditing] = useState(null); // key of field being edited, or null
+    const [editing, setEditing] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -119,7 +119,6 @@ const EditProfile = () => {
         link3: "Add link",
     };
 
-    // ambil placeholder: prioritas data asli dari server, kalau kosong pakai teks default
     const getPlaceholder = (key) => originalProfile[key] || fallbackPlaceholder[key];
 
     const handleFileChange = (e) => {
@@ -134,10 +133,8 @@ const EditProfile = () => {
     const handleEditProfile = async () => {
         setSubmitting(true);
         try {
-            // gabungkan data lama + field yang baru diubah, supaya field yang tidak disentuh tidak terkirim kosong
             const payload = { ...originalProfile, ...profile };
 
-            // hapus field kosong string biar tidak menimpa value lama kalau backend replace penuh
             Object.keys(payload).forEach((key) => {
                 if (payload[key] === "" && originalProfile[key]) {
                     payload[key] = originalProfile[key];
@@ -180,15 +177,14 @@ const EditProfile = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col gap-2 md:flex-row pb-12">
-            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 px-4 md:px-6 py-6">
-                <h1 className="text-gray-900 text-lg font-semibold mb-6 text-center md:text-left">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col gap-2 md:flex-row pb-12 transition-colors">
+            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 dark:border-gray-700 px-4 md:px-6 py-6">
+                <h1 className="text-gray-900 dark:text-white text-lg font-semibold mb-6 text-center md:text-left">
                     Edit Profile
                 </h1>
 
-                {/* Avatar */}
                 <div className="flex flex-col items-center gap-3 mb-6">
-                    <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-50 dark:bg-blue-500/20 border border-blue-100 dark:border-blue-400/40 flex items-center justify-center">
                         {avatar ? (
                             <img
                                 src={avatar}
@@ -196,10 +192,10 @@ const EditProfile = () => {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <ImagePlus className="w-8 h-8 text-blue-400" />
+                            <ImagePlus className="w-8 h-8 text-blue-400 dark:text-blue-300" />
                         )}
                     </div>
-                    <label className="text-sm text-blue-500 font-medium cursor-pointer hover:text-blue-600">
+                    <label className="text-sm text-blue-500 dark:text-blue-400 font-medium cursor-pointer hover:text-blue-600 dark:hover:text-blue-300">
                         Change Pic
                         <input
                             type="file"
@@ -210,8 +206,7 @@ const EditProfile = () => {
                     </label>
                 </div>
 
-                {/* Editable fields */}
-                <div className="max-w-md mx-auto md:mx-0 bg-white rounded-xl border border-gray-200 px-4 shadow-sm">
+                <div className="max-w-md mx-auto md:mx-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 px-4 shadow-sm dark:shadow-black/40">
                     <ProfileRow
                         label={fieldMeta.displayName.label}
                         value={profile.displayName}
@@ -225,9 +220,8 @@ const EditProfile = () => {
                         onClick={() => setEditing("bio")}
                     />
 
-                    {/* Link 1 */}
                     <div className="mt-2">
-                        <p className="text-xs font-medium text-blue-500 pt-2 pb-1">Link 1</p>
+                        <p className="text-xs font-medium text-blue-500 dark:text-blue-400 pt-2 pb-1">Link 1</p>
                         <ProfileRow
                             label={fieldMeta.nameLink1.label}
                             value={profile.nameLink1}
@@ -242,9 +236,8 @@ const EditProfile = () => {
                         />
                     </div>
 
-                    {/* Link 2 */}
                     <div className="mt-2">
-                        <p className="text-xs font-medium text-blue-500 pt-2 pb-1">Link 2</p>
+                        <p className="text-xs font-medium text-blue-500 dark:text-blue-400 pt-2 pb-1">Link 2</p>
                         <ProfileRow
                             label={fieldMeta.nameLink2.label}
                             value={profile.nameLink2}
@@ -259,9 +252,8 @@ const EditProfile = () => {
                         />
                     </div>
 
-                    {/* Link 3 */}
                     <div className="mt-2">
-                        <p className="text-xs font-medium text-blue-500 pt-2 pb-1">Link 3</p>
+                        <p className="text-xs font-medium text-blue-500 dark:text-blue-400 pt-2 pb-1">Link 3</p>
                         <ProfileRow
                             label={fieldMeta.nameLink3.label}
                             value={profile.nameLink3}
@@ -279,7 +271,6 @@ const EditProfile = () => {
                     </div>
                 </div>
 
-                {/* Save button */}
                 <div className="max-w-md mx-auto md:mx-0 mt-4">
                     <button
                         type="button"

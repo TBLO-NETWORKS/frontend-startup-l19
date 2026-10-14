@@ -38,27 +38,27 @@ const Server = () => {
     }, [hashAddress])
     return(
         <div className="flex flex-col gap-2 md:flex-row">
-            <div className="w-full md:w-2/3 border-0 md:border-r px-2">
+            <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
                 <div className="mt-2 md:mt-4">
-                    <h1 className="text-lg font-semibold">Your Joined Server's</h1>
-                    <hr className="border-gray-300 mt-4" />
+                    <h1 className="text-lg font-semibold dark:text-white">Your Joined Server's</h1>
+                    <hr className="border-gray-300 dark:border-gray-700 mt-4" />
 
                     <div className="mt-4 grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-2">
                         {myServers?.map((server) => (
-                            <Link key={server.id} href={`/server/${server.id}`} className="border border-gray-300 py-4 px-3 rounded-md flex gap-2 items-center">
-                                <div className="p-4 rounded-4xl bg-blue-300"></div>
+                            <Link key={server.id} href={`/server/${server.id}`} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-md dark:shadow-black/40 py-4 px-3 rounded-md flex gap-2 items-center transition-colors">
+                                <div className="p-4 rounded-4xl bg-blue-300 dark:bg-blue-400"></div>
                                 <div>
-                                    <h1 className="text-sm">{server.serverName}</h1>
-                                    <p className="text-xs text-gray-500">{server.members} <span className="text-black font-semibold">member</span></p>
+                                    <h1 className="text-sm dark:text-white">{server.serverName}</h1>
+                                    <p className="text-xs text-gray-500 dark:text-gray-300">{server.members} <span className="text-black dark:text-white font-semibold">member</span></p>
                                 </div>
                             </Link>
                         ))}
                         {servers.map((server) => (
-                            <Link key={server.id} href={`/server/${server.id}`} className="border border-gray-300 py-4 px-3 rounded-md flex gap-2 items-center">
-                                <div className="p-4 rounded-4xl bg-blue-300"></div>
+                            <Link key={server.id} href={`/server/${server.id}`} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-md dark:shadow-black/40 py-4 px-3 rounded-md flex gap-2 items-center transition-colors">
+                                <div className="p-4 rounded-4xl bg-blue-300 dark:bg-blue-400"></div>
                                 <div>
-                                    <h1 className="text-sm">{server.serverName}</h1>
-                                    <p className="text-xs text-gray-500">{server.members} <span className="text-black font-semibold">member</span></p>
+                                    <h1 className="text-sm dark:text-white">{server.serverName}</h1>
+                                    <p className="text-xs text-gray-500 dark:text-gray-300">{server.members} <span className="text-black dark:text-white font-semibold">member</span></p>
                                 </div>
                             </Link>
                         ))}

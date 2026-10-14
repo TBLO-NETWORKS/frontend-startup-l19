@@ -32,11 +32,12 @@ const GridIcon = ({ active }) => (
         height="22"
         viewBox="0 0 24 24"
         fill="none"
-        stroke={active ? "#111827" : "#9ca3af"}
+        stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
+        className={active ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}
     >
         <rect x="3" y="3" width="7" height="7" />
         <rect x="14" y="3" width="7" height="7" />
@@ -51,11 +52,12 @@ const RepostIcon = ({ active }) => (
         height="22"
         viewBox="0 0 24 24"
         fill="none"
-        stroke={active ? "#111827" : "#9ca3af"}
+        stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
+        className={active ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}
     >
         <path d="M17 1l4 4-4 4" />
         <path d="M3 11V9a4 4 0 0 1 4-4h14" />
@@ -225,16 +227,16 @@ const Wallet = () => {
 
     return (
         <div className="flex flex-col gap-2 md:flex-row pb-12">
-            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200">
-                <div className="sticky top-0 z-10 bg-white flex items-center justify-between px-4 py-3">
+            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white transition-colors">
+                <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 flex items-center justify-between px-4 py-3 transition-colors">
                     {isOwner ? (
-                        <Link href="/post/create" aria-label="Create post" className="text-gray-900">
+                        <Link href="/post/create" aria-label="Create post" className="text-gray-900 dark:text-white">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                                 <path d="M12 5v14M5 12h14" />
                             </svg>
                         </Link>
                     ) : (
-                        <button onClick={() => router.back()} aria-label="Back" className="text-gray-900 cursor-pointer">
+                        <button onClick={() => router.back()} aria-label="Back" className="text-gray-900 dark:text-white cursor-pointer">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M15 18l-6-6 6-6" />
                             </svg>
@@ -245,14 +247,14 @@ const Wallet = () => {
                 <div className="px-4 md:px-6">
                     <div className="flex gap-4 items-start mt-2">
                         <div className="relative shrink-0">
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 dark:shadow-black/40">
                                 <span className="text-white text-2xl sm:text-3xl font-bold">{initial}</span>
                             </div>
                             {isOwner && (
                                 <Link
                                     href="/edit-profile"
                                     aria-label="Edit profile photo"
-                                    className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white"
+                                    className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white"
                                 >
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
                                         <path d="M12 5v14M5 12h14" />
@@ -262,16 +264,16 @@ const Wallet = () => {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-sm font-semibold text-gray-900 truncate">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                 {user?.displayName ? user.displayName.split(" ")[0] : "-"}
                             </h2>
 
-                            <div className="mt-2 flex items-center gap-8 text-xs text-gray-700">
-                                <p className="mt-1 inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 self-start max-w-full">
-                                    <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <div className="mt-2 flex items-center gap-8 text-xs text-gray-700 dark:text-gray-200">
+                                <p className="mt-1 inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 rounded-full px-3 py-1 self-start max-w-full">
+                                    <svg className="w-3 h-3 text-gray-400 dark:text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-4 4a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l4-4a4 4 0 015.656 5.656l-1.5 1.5" />
                                     </svg>
-                                    <span className="text-[11px] font-mono text-gray-600 truncate">
+                                    <span className="text-[11px] font-mono text-gray-600 dark:text-gray-200 truncate">
                                         {hashAddress ? truncateAddress(hashAddress) : "Not available"}
                                     </span>
                                 </p>
@@ -281,7 +283,7 @@ const Wallet = () => {
                                 {isOwner ? (
                                     <Link
                                         href="/edit-profile"
-                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 text-center transition-colors"
+                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-center transition-colors"
                                     >
                                         Edit
                                     </Link>
@@ -294,7 +296,7 @@ const Wallet = () => {
                                     </button>
                                     <Link
                                         href={address ? `/chat/${[address, hashAddress].sort().join("_")}` : "#"}
-                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 text-center transition-colors cursor-pointer"
+                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-center transition-colors cursor-pointer"
                                     >
                                         Chat
                                     </Link>
@@ -306,10 +308,10 @@ const Wallet = () => {
 
                     <div className="mt-3 flex flex-col gap-1">
                         {user?.bio ? (
-                            <p className="text-xs text-gray-600">{user.bio}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-200">{user.bio}</p>
                         ) : (
                             isOwner && (
-                                <Link href="/edit-profile" className="text-xs text-gray-400">
+                                <Link href="/edit-profile" className="text-xs text-gray-400 dark:text-gray-300">
                                     Add bio
                                 </Link>
                             )
@@ -318,7 +320,7 @@ const Wallet = () => {
                         {links.length > 0 && (
                             <div className="flex flex-wrap gap-3">
                                 {links.map((item) => (
-                                    <Link key={item.href} href={item.href} className="text-xs text-blue-500 hover:text-blue-700">
+                                    <Link key={item.href} href={item.href} className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                                         {item.name}
                                     </Link>
                                 ))}
@@ -327,18 +329,18 @@ const Wallet = () => {
                     </div>
                 </div>
 
-                <div className="mt-4 flex border-b border-gray-200">
+                <div className="mt-4 flex border-b border-gray-200 dark:border-gray-700">
                     <button
                         onClick={() => setActiveTab("posts")}
                         aria-label="Posts"
-                        className={`flex-1 flex justify-center py-3 cursor-pointer border-b-2 ${activeTab === "posts" ? "border-gray-900" : "border-transparent"}`}
+                        className={`flex-1 flex justify-center py-3 cursor-pointer border-b-2 ${activeTab === "posts" ? "border-gray-900 dark:border-white" : "border-transparent"}`}
                     >
                         <GridIcon active={activeTab === "posts"} />
                     </button>
                     <button
                         onClick={() => setActiveTab("reposts")}
                         aria-label="Reposts"
-                        className={`flex-1 flex justify-center py-3 cursor-pointer border-b-2 ${activeTab === "reposts" ? "border-gray-900" : "border-transparent"}`}
+                        className={`flex-1 flex justify-center py-3 cursor-pointer border-b-2 ${activeTab === "reposts" ? "border-gray-900 dark:border-white" : "border-transparent"}`}
                     >
                         <RepostIcon active={activeTab === "reposts"} />
                     </button>
@@ -347,17 +349,17 @@ const Wallet = () => {
                 <div className="px-4 md:px-6">
                     {activeTab === "posts" && (!posts || posts.length === 0) && (
                         <div className="flex flex-col items-center text-center py-16">
-                            <div className="w-24 h-24 rounded-3xl bg-blue-50 flex items-center justify-center">
+                            <div className="w-24 h-24 rounded-3xl bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <rect x="3" y="5" width="18" height="14" rx="3" />
                                     <circle cx="9" cy="11" r="2" />
                                     <path d="M21 16l-5-5-8 8" />
                                 </svg>
                             </div>
-                            <h3 className="mt-4 text-base font-semibold text-gray-900">
+                            <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
                                 {isOwner ? "Upload your photos!" : "No posts yet"}
                             </h3>
-                            <p className="mt-1 text-xs text-gray-600 max-w-[260px]">
+                            <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 max-w-[260px]">
                                 {isOwner
                                     ? "Express yourself through photos and start connecting with students around the world."
                                     : "Shared posts will appear here."}
@@ -367,8 +369,8 @@ const Wallet = () => {
 
                     {activeTab === "reposts" && (
                         <div className="flex flex-col items-center text-center py-16">
-                            <h3 className="text-base font-semibold text-gray-900">No reposts yet</h3>
-                            <p className="mt-1 text-xs text-gray-600 max-w-[260px]">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">No reposts yet</h3>
+                            <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 max-w-[260px]">
                                 Reposted posts will appear here.
                             </p>
                         </div>
@@ -382,17 +384,17 @@ const Wallet = () => {
                                 const commentCount = commentCounts[post.id] ?? 0
 
                                 return (
-                                    <div key={post.id} className="border-b border-gray-200 pb-6">
+                                    <div key={post.id} className="border-b border-gray-200 dark:border-gray-700 pb-6">
                                         <Link href={`/${post.user}`} className="flex gap-2 items-center">
-                                            <div className="bg-blue-300 rounded-4xl p-4"></div>
+                                            <div className="bg-blue-300 dark:bg-blue-400 rounded-4xl p-4"></div>
 
                                             <div className="text-xs">
-                                                <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
+                                                <h2 className="font-semibold dark:text-white">{truncateAddress(post.user)}</h2>
                                                 <p className="flex gap-1 md:gap-2">
-                                                    <span className="opacity-50">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
+                                                    <span className="opacity-50 dark:opacity-100 dark:text-gray-400">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
                                                     <span className="bg-orange-500 text-white">{server?.serverName ? `server: ${server.serverName}` : ""}</span>
                                                 </p>
-                                                <p className="mt-1">{post.caption}</p>
+                                                <p className="mt-1 dark:text-gray-100">{post.caption}</p>
                                             </div>
                                         </Link>
 
@@ -407,11 +409,11 @@ const Wallet = () => {
                                                             aria-pressed={isLiked}
                                                         >
                                                             <HeartIcon filled={isLiked} size={20} />
-                                                            <p className="text-[10px]">{post.likesCount}</p>
+                                                            <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                                                         </button>
                                                         <Link href={`/post/${post.id}`} className="cursor-pointer">
-                                                            <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
-                                                            <p className="text-[10px]">{commentCount}</p>
+                                                            <Image src="/icon/comment.png" alt="Comment" width={20} height={20} className="dark:invert" />
+                                                            <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                                                         </Link>
                                                         <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                             <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
@@ -419,10 +421,10 @@ const Wallet = () => {
                                                     </div>
 
                                                     <button className="cursor-pointer">
-                                                        <Image src="/icon/share.png" alt="Share" width={20} height={20} />
+                                                        <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
                                                     </button>
                                                 </div>
-                                                <div className="bg-red-200 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
+                                                <div className="bg-red-200 dark:bg-gray-700 dark:border dark:border-gray-600 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
                                             </div>
                                         ) : (
                                             <div className="mt-2">
@@ -435,11 +437,11 @@ const Wallet = () => {
                                                             aria-pressed={isLiked}
                                                         >
                                                             <HeartIcon filled={isLiked} size={15} />
-                                                            <p className="text-[10px]">{post.likesCount}</p>
+                                                            <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                                                         </button>
                                                         <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
-                                                            <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                                                            <p className="text-[10px]">{commentCount}</p>
+                                                            <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
+                                                            <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                                                         </Link>
                                                         <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                             <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
@@ -447,7 +449,7 @@ const Wallet = () => {
                                                     </div>
 
                                                     <button className="cursor-pointer">
-                                                        <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                                                        <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
                                                     </button>
                                                 </div>
                                             </div>

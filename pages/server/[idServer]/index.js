@@ -220,15 +220,15 @@ const DetailServer = () => {
     }
     return (
         <div className="flex flex-col gap-2 md:flex-row">
-            <div className="w-full md:w-2/3 border-0 md:border-r px-2">
+            <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
                 <div className="mt-4">
-                    <p className="text-sm opacity-50">category : {server.category}</p>
+                    <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-400">category : {server.category}</p>
                     <div className="flex justify-between items-center">
-                        <h1 className="text-xl font-semibold mt-5">{server.serverName}</h1>
-                        <p className="text-sm mt-4 opacity-50"><span className="font-semibold opacity-100">{server.members}</span> members</p>
+                        <h1 className="text-xl font-semibold mt-5 dark:text-white">{server.serverName}</h1>
+                        <p className="text-sm mt-4 opacity-50 dark:opacity-100 dark:text-gray-400"><span className="font-semibold opacity-100 dark:text-white">{server.members}</span> members</p>
                     </div>
-                    <p className="text-sm opacity-50 mt-1">{server.desc}</p>
-                    <hr className="mt-4 opacity-50 border border-gray-400" />
+                    <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-300 mt-1">{server.desc}</p>
+                    <hr className="mt-4 opacity-50 dark:opacity-100 border border-gray-400 dark:border-gray-700" />
                     <div className="mt-2 flex justify-between">
                         {owner ? (
                             <button className="bg-green-500 hover:bg-green-600 cursor-pointer transition-all duration-300 text-white px-4 py-2 rounded-2xl text-sm">
@@ -238,7 +238,7 @@ const DetailServer = () => {
                             <button
                                 disabled={loading}
                                 onClick={handleLeaveServer}
-                                className="bg-gray-400 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm"
+                                className="bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm transition-colors"
                             >
                                 Joined
                             </button>
@@ -253,7 +253,7 @@ const DetailServer = () => {
                         )}
 
                         {join ? (
-                            <Link href={`/server/${idServer}/create`} className="border cursor-pointer flex items-center justify-between gap-1 border-blue-500 text-blue-500 px-4 py-2 rounded-2xl text-sm">
+                            <Link href={`/server/${idServer}/create`} className="border cursor-pointer flex items-center justify-between gap-1 border-blue-500 text-blue-500 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500/15 px-4 py-2 rounded-2xl text-sm transition-colors">
                                 <Image className="text-blue-500" src="/icon/add_blue.png" alt="Add" width={20} height={15} />
                                 Create Post
                             </Link>
@@ -270,14 +270,14 @@ const DetailServer = () => {
                             const commentCount = commentCounts[post.id] ?? 0
 
                             return (
-                                <div key={post.id} className="border-b border-gray-300 pb-6">
+                                <div key={post.id} className="border-b border-gray-300 dark:border-gray-700 pb-6">
                                     <Link href={`/${post.user}`} className="flex gap-2 items-center">
-                                        <div className="bg-blue-300 rounded-4xl p-4"></div>
+                                        <div className="bg-blue-300 dark:bg-blue-400 rounded-4xl p-4"></div>
 
                                         <div className="text-xs">
-                                            <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
-                                            <p className="opacity-50">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</p>
-                                            <p className="mt-1">{post.caption}</p>
+                                            <h2 className="font-semibold dark:text-white">{truncateAddress(post.user)}</h2>
+                                            <p className="opacity-50 dark:opacity-100 dark:text-gray-400">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</p>
+                                            <p className="mt-1 dark:text-gray-100">{post.caption}</p>
                                         </div>
                                     </Link>
 
@@ -292,11 +292,11 @@ const DetailServer = () => {
                                                         aria-pressed={isLiked}
                                                     >
                                                         <HeartIcon filled={isLiked} size={20} />
-                                                        <p className="text-[10px]">{post.likesCount}</p>
+                                                        <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                                                     </button>
                                                     <Link href={`/post/${post.id}`} className="cursor-pointer flex md:flex-col items-center gap-1">
-                                                        <Image src="/icon/comment.png" alt="Comment" width={20} height={20} />
-                                                        <p className="text-[10px]">{commentCount}</p>
+                                                        <Image src="/icon/comment.png" alt="Comment" width={20} height={20} className="dark:invert" />
+                                                        <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                                                     </Link>
                                                     <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
@@ -304,10 +304,10 @@ const DetailServer = () => {
                                                 </div>
 
                                                 <button className="cursor-pointer">
-                                                    <Image src="/icon/share.png" alt="Share" width={20} height={20} />
+                                                    <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
                                                 </button>
                                             </div>
-                                            <div className="bg-red-200 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
+                                            <div className="bg-red-200 dark:bg-gray-700 dark:border dark:border-gray-600 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
                                         </div>
                                     ) : (
                                         <div className="mt-2">
@@ -320,11 +320,11 @@ const DetailServer = () => {
                                                         aria-pressed={isLiked}
                                                     >
                                                         <HeartIcon filled={isLiked} size={15} />
-                                                        <p className="text-[10px]">{post.likesCount}</p>
+                                                        <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
                                                     </button>
                                                     <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
-                                                        <Image src="/icon/comment.png" alt="Comment" width={15} height={15} />
-                                                        <p className="text-[10px]">{commentCount}</p>
+                                                        <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
+                                                        <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
                                                     </Link>
                                                     <Link href={`/post/${post.id}`} className="cursor-pointer">
                                                         <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
@@ -332,7 +332,7 @@ const DetailServer = () => {
                                                 </div>
 
                                                 <button className="cursor-pointer">
-                                                    <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                                                    <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
                                                 </button>
                                             </div>
                                         </div>

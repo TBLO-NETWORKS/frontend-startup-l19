@@ -19,7 +19,7 @@ export default function Layout({ children }) {
         <Sidebar />
 
         {/* pt-navbar selalu ada; pb-bottombar hanya mobile; ml-sidebar hanya desktop */}
-        <div className="pt-[73px] pb-16 md:pb-0 md:ml-[25%]">
+        <div className="pt-[73px] pb-16 md:pb-0 md:ml-[25%] min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
           {children}
         </div>
       </main>

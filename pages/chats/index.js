@@ -12,9 +12,8 @@ const ListChats = () => {
     const [keyword, setKeyword] = useState("")
     const [filter, setFilter] = useState("all")
     const [myHash, setMyHash] = useState("")
-    const [profiles, setProfiles] = useState({}) // { hash: dataUser }
+    const [profiles, setProfiles] = useState({})
 
-    // hash user login dari token
     useEffect(() => {
         const token = Cookies.get("token")
         if (token) {
@@ -30,7 +29,6 @@ const ListChats = () => {
         listChats().then((res) => setChats(res?.data?.data || res?.data || []))
     }, [])
 
-    // ambil profil lawan bicara (hanya yang belum pernah diambil)
     useEffect(() => {
         if (!myHash || chats.length === 0) return
 
@@ -89,40 +87,40 @@ const ListChats = () => {
 
     return (
         <div className="flex flex-col gap-2 md:flex-row">
-            <div className="w-full md:w-2/3 border-0 md:border-r px-2">
+            <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
                 <div className="flex flex-col gap-3 py-3">
-                    <h1 className="text-center text-xl font-semibold">Chats</h1>
+                    <h1 className="text-center text-xl font-semibold dark:text-white">Chats</h1>
 
-                    <div className="flex items-center gap-3 rounded-full bg-gray-100 px-4 py-3">
-                        <svg className="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-3 rounded-full bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:shadow-md dark:shadow-black/40 px-4 py-3 transition-colors">
+                        <svg className="h-5 w-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" strokeLinecap="round" />
                         </svg>
                         <input
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                             placeholder="Cari pesan"
-                            className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                            className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-400"
                         />
                     </div>
 
                     <div className="flex gap-2">
                         <button
                             onClick={() => setFilter("all")}
-                            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${filter === "all" ? "border-blue-200 bg-blue-100 text-blue-900" : "border-gray-200 text-gray-500"}`}
+                            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${filter === "all" ? "border-blue-200 bg-blue-100 text-blue-900 dark:border-blue-400 dark:bg-blue-500/30 dark:text-blue-100" : "border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-300"}`}
                         >
                             All
                         </button>
                         <button
                             onClick={() => setFilter("unread")}
-                            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${filter === "unread" ? "border-blue-200 bg-blue-100 text-blue-900" : "border-gray-200 text-gray-500"}`}
+                            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${filter === "unread" ? "border-blue-200 bg-blue-100 text-blue-900 dark:border-blue-400 dark:bg-blue-500/30 dark:text-blue-100" : "border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-300"}`}
                         >
                             Unread <span className="ml-1">{unreadCount}</span>
                         </button>
                     </div>
 
-                    <div className="border-t">
+                    <div className="border-t dark:border-gray-700">
                         {shown.length === 0 && (
-                            <p className="py-10 text-center text-sm text-gray-400">Belum ada chat</p>
+                            <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-300">Belum ada chat</p>
                         )}
 
                         {shown.map((c) => {
@@ -132,10 +130,10 @@ const ListChats = () => {
                                 <Link
                                     key={c.id}
                                     href={`/chat/${c.id}`}
-                                    className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                                    className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-gray-800 dark:active:bg-gray-700"
                                 >
                                     <div
-                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 shadow-md shadow-blue-500/20 ${unread ? "ring-2 ring-blue-500 ring-offset-2" : ""}`}
+                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 shadow-md shadow-blue-500/20 dark:shadow-black/40 ${unread ? "ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900" : ""}`}
                                     >
                                         <span className="text-sm font-semibold text-white">
                                             {initialOf(c)}
@@ -144,16 +142,16 @@ const ListChats = () => {
 
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-baseline justify-between gap-2">
-                                            <p className={`truncate font-semibold text-[13px] ${unread ? "font-semibold text-gray-900" : "font-medium text-gray-800"}`}>
+                                            <p className={`truncate font-semibold text-[13px] ${unread ? "font-semibold text-gray-900 dark:text-white" : "font-medium text-gray-800 dark:text-gray-100"}`}>
                                                 {nameOf(c)}
                                             </p>
-                                            <span className={`shrink-0 text-[11px] tabular-nums ${unread ? "font-medium text-blue-500" : "text-gray-400"}`}>
+                                            <span className={`shrink-0 text-[11px] tabular-nums ${unread ? "font-medium text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-300"}`}>
                                                 {time ? time.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : ""}
                                             </span>
                                         </div>
 
                                         <div className="mt-0.5 flex items-center justify-between gap-2">
-                                            <p className={`truncate text-xs ${unread ? "font-medium text-gray-900" : "text-gray-500"}`}>
+                                            <p className={`truncate text-xs ${unread ? "font-medium text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-300"}`}>
                                                 {c.lastMessage?.text || "Mulai percakapan"}
                                             </p>
                                             {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />}

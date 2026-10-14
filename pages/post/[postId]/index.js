@@ -168,16 +168,16 @@ const DetailPost = () => {
     }, [post?.server])
 
     return (
-        <div className="flex flex-col gap-2 md:flex-row pb-12">
-            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 px-4 md:px-6">
+        <div className="flex flex-col gap-2 md:flex-row pb-12 text-gray-900 dark:text-gray-100">
+            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 dark:border-gray-700 px-4 md:px-6">
                 {loading ? (
-                    <p className="mt-8 text-sm text-gray-500">Loading...</p>
+                    <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
                 ) : !post ? (
                     <div className="mt-8">
-                        <p className="text-sm text-gray-500">Post not found.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Post not found.</p>
                         <button
                             onClick={() => router.back()}
-                            className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-700"
+                            className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                             Go back
                         </button>
@@ -186,19 +186,19 @@ const DetailPost = () => {
                     <>
                         <button
                             onClick={() => router.back()}
-                            className="mt-6 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                            className="mt-6 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                         >
                             Back
                         </button>
 
-                        <div className="mt-4 border-b border-gray-300 pb-6">
+                        <div className="mt-4 border-b border-gray-300 dark:border-gray-600 pb-6">
                             <Link href={`/${post.user}`} className="flex gap-2 items-center">
-                                <div className="bg-blue-300 rounded-4xl p-4"></div>
+                                <div className="bg-blue-300 dark:bg-blue-400 rounded-4xl p-4"></div>
 
                                 <div className="text-xs">
                                     <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
                                     <p className="flex gap-2">
-                                        <span className="opacity-50">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
+                                        <span className="opacity-50 dark:opacity-70">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
                                         <span className="bg-orange-500 text-white">{server?.serverName ? `server: ${server.serverName}` : ""}</span>
                                     </p>
                                     <p className="mt-1">{post.caption}</p>
@@ -223,18 +223,18 @@ const DetailPost = () => {
                                                 <p className="text-[10px]">{comments.length}</p>
                                             </div>
                                             <Link href={`/post/${post.id}/reward`} className="cursor-pointer">
-                                                <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
+                                                <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} className="dark:invert" />
                                             </Link>
                                         </div>
 
                                         <div className="flex flex-row md:flex-col items-center gap-6">
                                             <button className="cursor-pointer">
-                                                <Image src="/icon/share.png" alt="Share" width={20} height={20} />
+                                                <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
                                             </button>
                                             {isOwner && (
                                                 <button
                                                     type="button"
-                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                     onClick={handleDeletePost}
                                                 >
                                                     Delete
@@ -242,7 +242,7 @@ const DetailPost = () => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="bg-red-200 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
+                                    <div className="bg-red-200 dark:bg-red-900 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2"></div>
                                 </div>
                             ) : (
                                 <div className="mt-2">
@@ -258,7 +258,7 @@ const DetailPost = () => {
                                                 <p className="text-[10px]">{post.likesCount ?? 0}</p>
                                             </button>
                                             <div className="flex items-center gap-1">
-                                                <Image src="/icon/comment.png" alt="Comments" width={15} height={15} />
+                                                <Image src="/icon/comment.png" alt="Comments" width={15} height={15} className="dark:invert" />
                                                 <p className="text-[10px]">{comments.length}</p>
                                             </div>
                                             <Link href={`/post/${post.id}/reward`} className="cursor-pointer">
@@ -268,13 +268,13 @@ const DetailPost = () => {
 
                                         <div className="flex items-center gap-6">
                                             <button className="cursor-pointer">
-                                                <Image src="/icon/share.png" alt="Share" width={15} height={15} />
+                                                <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
                                             </button>
                                             {isOwner && (
                                                 <button
                                                     onClick={handleDeletePost}
                                                     type="button"
-                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                    className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                 >
                                                     Delete
                                                 </button>
@@ -292,10 +292,10 @@ const DetailPost = () => {
                                 placeholder="Write a comment"
                                 rows={3}
                                 maxLength={500}
-                                className="w-full text-sm rounded-lg border border-gray-300 p-3 resize-none focus:outline-none focus:border-blue-500"
+                                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 p-3 resize-none focus:outline-none focus:border-blue-500"
                             />
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-400">{commentText.length}/500</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">{commentText.length}/500</span>
                                 <button
                                     type="submit"
                                     disabled={submitting || !commentText.trim()}
@@ -308,24 +308,24 @@ const DetailPost = () => {
 
                         <div className="mt-6 flex flex-col gap-4">
                             {comments.length === 0 ? (
-                                <p className="text-xs text-gray-500">No comments yet. Be the first to comment.</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">No comments yet. Be the first to comment.</p>
                             ) : (
                                 comments.map((c, i) => (
-                                    <div key={c.id ?? i} className="flex gap-2 border-b border-gray-200 pb-4">
+                                    <div key={c.id ?? i} className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
                                         <Link href={`/${c.user}`} className="shrink-0">
-                                            <div className="bg-blue-300 rounded-4xl p-4"></div>
+                                            <div className="bg-blue-300 dark:bg-blue-400 rounded-4xl p-4"></div>
                                         </Link>
                                         <div className="text-xs min-w-0">
                                             <p className="flex gap-2">
                                                 <Link href={`/${c.user}`} className="font-semibold">
                                                     {truncateAddress(c.user)}
                                                 </Link>
-                                                <span className="opacity-50">{formatTimestamp(c.createdAt)}</span>
+                                                <span className="opacity-50 dark:opacity-70">{formatTimestamp(c.createdAt)}</span>
                                                 {Boolean(userHash) && c.user === userHash && (
                                                     <button
                                                         onClick={() => handleDeleteComment(c.id)}
                                                         type="button"
-                                                        className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700"
+                                                        className="cursor-pointer text-[10px] font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                     >
                                                         Delete
                                                     </button>

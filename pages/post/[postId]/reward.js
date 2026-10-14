@@ -57,10 +57,10 @@ const RewardCard = ({ reward, active, onSelect }) => (
         role="radio"
         aria-checked={active}
         onClick={() => onSelect(active ? null : reward)}
-        className={`group relative flex flex-col items-start gap-3 rounded-2xl border p-4 text-left cursor-pointer transition duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+        className={`group relative flex flex-col items-start gap-3 rounded-2xl border p-4 text-left cursor-pointer transition duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
             active
-                ? "border-blue-500 bg-gradient-to-b from-blue-50 to-white shadow-[0_8px_24px_-8px_rgba(59,130,246,0.45)] ring-1 ring-blue-500"
-                : "border-gray-200 bg-white hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md motion-reduce:hover:translate-y-0"
+                ? "border-blue-500 bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-gray-900 shadow-[0_8px_24px_-8px_rgba(59,130,246,0.45)] ring-1 ring-blue-500"
+                : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 hover:-translate-y-0.5 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md motion-reduce:hover:translate-y-0"
         }`}
     >
         {/* Selected check */}
@@ -76,20 +76,20 @@ const RewardCard = ({ reward, active, onSelect }) => (
         {/* Icon tile */}
         <span
             className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl transition-colors ${
-                active ? "bg-blue-100" : "bg-gray-100 group-hover:bg-gray-200/70"
+                active ? "bg-blue-100 dark:bg-blue-900/60" : "bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-200/70 dark:group-hover:bg-gray-700"
             }`}
         >
             {reward.icon}
         </span>
 
         <span className="min-w-0">
-            <span className="block text-sm font-semibold text-gray-900">{reward.name}</span>
-            <span className="mt-0.5 block text-xs leading-snug text-gray-500">{reward.desc}</span>
+            <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">{reward.name}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-gray-500 dark:text-gray-400">{reward.desc}</span>
         </span>
 
         <span
             className={`rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${
-                active ? "bg-blue-500 text-white" : "bg-orange-50 text-orange-600"
+                active ? "bg-blue-500 text-white" : "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400"
             }`}
         >
             +{reward.amount} {reward.amount === 1 ? "pt" : "pts"}
@@ -155,16 +155,16 @@ const RewardSomePost = () => {
     }, [post?.server])
 
     return (
-        <div className="flex flex-col gap-2 md:flex-row pb-12">
-            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 px-4 md:px-6">
+        <div className="flex flex-col gap-2 md:flex-row pb-12 text-gray-900 dark:text-gray-100">
+            <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 dark:border-gray-700 px-4 md:px-6">
                 {loading ? (
-                    <p className="mt-8 text-sm text-gray-500">Loading...</p>
+                    <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
                 ) : !post ? (
                     <div className="mt-8">
-                        <p className="text-sm text-gray-500">Post not found.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Post not found.</p>
                         <button
                             onClick={() => router.back()}
-                            className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-700"
+                            className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                             Go back
                         </button>
@@ -173,19 +173,19 @@ const RewardSomePost = () => {
                     <>
                         <button
                             onClick={() => router.back()}
-                            className="mt-6 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                            className="mt-6 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                         >
                             Back
                         </button>
 
-                        <div className="mt-4 border-b border-gray-300 pb-6">
+                        <div className="mt-4 border-b border-gray-300 dark:border-gray-600 pb-6">
                             <Link href={`/${post.user}`} className="flex gap-2 items-center">
-                                <div className="bg-blue-300 rounded-4xl p-4"></div>
+                                <div className="bg-blue-300 dark:bg-blue-400 rounded-4xl p-4"></div>
 
                                 <div className="text-xs">
                                     <h2 className="font-semibold">{truncateAddress(post.user)}</h2>
                                     <p className="flex gap-2">
-                                        <span className="opacity-50">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
+                                        <span className="opacity-50 dark:opacity-70">{post.createdAt ? formatTimestamp(post.createdAt) : "-"}</span>
                                         <span className="bg-orange-500 text-white">{server?.serverName ? `server: ${server.serverName}` : ""}</span>
                                     </p>
                                     <p className="mt-1">{post.caption}</p>
@@ -194,20 +194,20 @@ const RewardSomePost = () => {
 
                             {post?.image && (
                                 <div className="mt-2">
-                                    <div className="bg-red-200 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px]"></div>
+                                    <div className="bg-red-200 dark:bg-red-900 w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px]"></div>
                                 </div>
                             )}
                         </div>
 
                         {/* Reward picker */}
-                        <section className="mt-6 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+                        <section className="mt-6 overflow-hidden rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
                             <div className="p-5 sm:p-6">
-                                <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                                <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                                     Send a reward
                                 </h3>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     Show your appreciation to{" "}
-                                    <span className="font-medium text-gray-900">
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {truncateAddress(post.user, 6, 4)}
                                     </span>
                                 </p>
@@ -228,24 +228,24 @@ const RewardSomePost = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-4 border-t border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                            <div className="flex flex-col gap-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                                 <div className="min-w-0" aria-live="polite">
                                     {selectedReward ? (
                                         <div className="flex items-center gap-3">
-                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-xl">
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/60 text-xl">
                                                 {selectedReward.icon}
                                             </span>
                                             <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold text-gray-900">
+                                                <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                     {selectedReward.name}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                                     {selectedReward.amount} {selectedReward.amount === 1 ? "point" : "points"} will be sent
                                                 </p>
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-gray-400">
+                                        <p className="text-sm text-gray-400 dark:text-gray-500">
                                             Select a reward to continue
                                         </p>
                                     )}
@@ -255,7 +255,7 @@ const RewardSomePost = () => {
                                     type="button"
                                     onClick={handleSendReward}
                                     disabled={!selectedReward || sending}
-                                    className="w-full rounded-xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-blue-600 active:scale-[0.98] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:active:scale-100 motion-reduce:transition-none sm:w-auto"
+                                    className="w-full rounded-xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-blue-600 active:scale-[0.98] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-700 dark:disabled:text-gray-500 disabled:shadow-none disabled:active:scale-100 motion-reduce:transition-none sm:w-auto"
                                 >
                                     {sending
                                         ? "Sending..."

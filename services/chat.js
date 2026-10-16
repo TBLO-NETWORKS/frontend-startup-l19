@@ -30,6 +30,7 @@ export async function getMessages(chatId) {
     })
 }
 
+// data = { ciphertext, iv, keys }  (hasil encryptMessage)
 export async function sendMessage(chatId, data) {
     const url = `${ROOT_API}/chat/chats/${chatId}/messages`
     return callApi({
@@ -45,6 +46,16 @@ export async function markRead(chatId) {
     return callApi({
         url,
         method: "PUT",
+        token: true
+    })
+}
+
+// FIX: sebelumnya tidak menerima parameter chatId
+export async function getChatKeys(chatId) {
+    const url = `${ROOT_API}/chat/chats/${chatId}/keys`
+    return callApi({
+        url,
+        method: "GET",
         token: true
     })
 }

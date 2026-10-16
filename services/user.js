@@ -27,3 +27,21 @@ export async function search(q) {
         method: "GET",
     })
 }
+
+export async function setPublicKey(publicKey) {
+    const url = `${ROOT_API}/user/publickey`
+    return callApi({
+        url,
+        method: "PUT",
+        token: true,
+        data: { publicKey }
+    })
+}
+ 
+export async function getPublicKey(hashAddress) {
+    const url = `${ROOT_API}/user/${hashAddress}/publickey`
+    return callApi({
+        url,
+        method: "GET"
+    })
+}

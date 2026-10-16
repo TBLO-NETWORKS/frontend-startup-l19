@@ -3,11 +3,13 @@ import Image from "next/image";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { getDetailServer } from "@/services/server";
 import { getPersonalPosts, toggleLikePost, checkLikePost, checkManyComments } from "@/services/post";
-import { dataUser } from "@/services/user";
+import { dataUser, setPublicKey } from "@/services/user";
+import { openChat } from "@/services/chat";
+import { ensureKeyPair } from "@/lib/chatCrypto";
 import ConnectWallet from "@/components/connectWallet";
 
 const HeartIcon = ({ filled, size = 20 }) => (
@@ -66,7 +68,27 @@ const RepostIcon = ({ active }) => (
     </svg>
 )
 
+// Jalankan fn untuk setiap item, maksimal `size` request bersamaan
+// (supaya tidak menembak puluhan request sekaligus)
+const mapInBatches = async (items, size, fn) => {
+    const out = []
+    for (let i = 0; i < items.length; i += size) {
+        const chunk = items.slice(i, i + size)
+        out.push(...(await Promise.all(chunk.map(fn))))
+    }
+    return out
+}
+
+// Singkat alamat/hash: 0x1234...abcd (sesuaikan formatnya kalau sebelumnya beda)
+const truncateAddress = (addr) =>
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : ""
+
+const BATCH_SIZE = 5
+
 const Wallet = () => {
+    const router = useRouter()
+    const { hashAddress } = router.query // dari nama file: pages/[hashAddress]/index.js
+
     const [address, setAddress] = useState("")
     const [user, setUser] = useState({})
     const [posts, setPosts] = useState([])
@@ -74,63 +96,57 @@ const Wallet = () => {
     const [commentCounts, setCommentCounts] = useState({})
     const [serverDetails, setServerDetails] = useState({})
     const [activeTab, setActiveTab] = useState("posts")
+    const [openingChat, setOpeningChat] = useState(false)
 
-    const router = useRouter()
-    const { hashAddress } = router.query
+    const extrasRequested = useRef(new Set())
+    const pendingLikes = useRef(new Set())
+    const serversRequested = useRef(new Set())
 
-    const truncateAddress = (address, start = 6, end = 12) => {
-        if (!address) return "";
-        if (address.length <= start + end) return address;
-        return `${address.slice(0, start)}...${address.slice(-end)}`;
+    const fetchPostExtras = async (postList, isCancelled) => {
+        const newPosts = postList.filter((p) => !extrasRequested.current.has(p.id))
+        if (newPosts.length === 0) return
+        newPosts.forEach((p) => extrasRequested.current.add(p.id))
+
+        const results = await mapInBatches(newPosts, BATCH_SIZE, async (post) => {
+            const [likeRes, commentRes] = await Promise.all([
+                checkLikePost(post.id).catch(() => null),
+                checkManyComments(post.id).catch(() => null),
+            ])
+            return {
+                id: post.id,
+                liked: likeRes ? Boolean(likeRes.data) : false,
+                comments: commentRes ? Number(commentRes.data) || 0 : 0,
+            }
+        })
+
+        if (isCancelled?.()) return
+
+        setLikedPosts((prev) => {
+            const next = { ...prev }
+            results.forEach((r) => { next[r.id] = r.liked })
+            return next
+        })
+        setCommentCounts((prev) => {
+            const next = { ...prev }
+            results.forEach((r) => { next[r.id] = r.comments })
+            return next
+        })
     }
 
-    const fetchLikeStatuses = async (postList) => {
-        const results = await Promise.all(
-            postList.map(async (post) => {
-                const res = await checkLikePost(post.id)
-                return [post.id, res ? Boolean(res.data) : false]
-            })
-        )
-        setLikedPosts(Object.fromEntries(results))
-    }
-
-    const fetchCommentCounts = async (postList) => {
-        const results = await Promise.all(
-            postList.map(async (post) => {
-                try {
-                    const res = await checkManyComments(post.id)
-                    return [post.id, res ? Number(res.data) || 0 : 0]
-                } catch (err) {
-                    console.error(`Failed to fetch comments for post ${post.id}`, err)
-                    return [post.id, 0]
-                }
-            })
-        )
-        setCommentCounts(Object.fromEntries(results))
-    }
-
-    const fetchPosts = async () => {
+    const fetchPosts = async (isCancelled) => {
         const response = await getPersonalPosts(hashAddress)
+        if (isCancelled?.()) return
         if (!response) {
             toast.error("Failed to fetch posts")
         } else {
             setPosts(response.data)
-            fetchLikeStatuses(response.data)
-            fetchCommentCounts(response.data)
+            fetchPostExtras(response.data, isCancelled)
         }
     }
 
-    const handlerLike = async (postId) => {
-        const response = await toggleLikePost(postId)
-        if (!response) {
-            toast.error("Failed to like post")
-        } else {
-            fetchPosts()
-        }
-    }
-
-    const fetchDataUser = async () => {
+    const fetchDataUser = async (isCancelled) => {
         const response = await dataUser(hashAddress)
+        if (isCancelled?.()) return
         if (!response) {
             toast.error("Failed to fetch user")
         } else {
@@ -138,22 +154,114 @@ const Wallet = () => {
         }
     }
 
-    const checkToken = async () => {
-        const token = Cookies.get("token")
-        if (token) {
-            const jwtToken = atob(token)
-            const payload = jwtDecode(jwtToken)
-            const hashFromPayload = payload.hash
-            setAddress(hashFromPayload)
+    const handlerLike = async (postId) => {
+        if (pendingLikes.current.has(postId)) return
+        pendingLikes.current.add(postId)
+
+        const wasLiked = Boolean(likedPosts[postId])
+        const delta = wasLiked ? -1 : 1
+
+        const apply = (liked, d) => {
+            setLikedPosts((prev) => ({ ...prev, [postId]: liked }))
+            setPosts((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? { ...p, likesCount: Math.max(0, (Number(p.likesCount) || 0) + d) }
+                        : p
+                )
+            )
+        }
+
+        apply(!wasLiked, delta)
+
+        try {
+            const response = await toggleLikePost(postId)
+            if (!response) throw new Error("toggle failed")
+        } catch (err) {
+            apply(wasLiked, -delta) // rollback
+            toast.error("Failed to like post")
+        } finally {
+            pendingLikes.current.delete(postId)
+        }
+    }
+
+    const handleChat = async () => {
+        if (openingChat || !address || !hashAddress) return
+        setOpeningChat(true)
+
+        try {
+            const me = await dataUser(address)
+            const keyResult = await ensureKeyPair(
+                address,
+                me?.data?.publicKey || null,
+                async (publicKey) => {
+                    const res = await setPublicKey(publicKey)
+                    if (!res) throw new Error("Failed to upload public key")
+                }
+            )
+
+            if (keyResult.status !== "ready") {
+                router.push(`/chat/${[address, hashAddress].sort().join("_")}`)
+                return
+            }
+
+            const res = await openChat({ targetHash: hashAddress })
+
+            if (!res || res.error) {
+                const code = res?.data?.code
+                if (code === "TARGET_NO_PUBLIC_KEY") {
+                    toast.error("Pengguna ini belum mengaktifkan enkripsi")
+                } else if (code === "PUBLIC_KEY_REQUIRED") {
+                    toast.error("Aktifkan enkripsi di akun kamu dulu")
+                } else {
+                    toast.error(res?.data?.message || "Gagal membuka chat")
+                }
+                return
+            }
+
+            router.push(`/chat/${res.data.chatId}`)
+        } catch (err) {
+            console.error(err)
+            toast.error("Gagal membuka chat")
+        } finally {
+            setOpeningChat(false)
+        }
+    }
+
+    const readAddressFromToken = () => {
+        try {
+            const token = Cookies.get("token")
+            if (!token) return
+            const payload = jwtDecode(atob(token))
+            setAddress(payload.hash)
+        } catch (err) {
+            console.error("Invalid token", err)
         }
     }
 
     useEffect(() => {
-        if (hashAddress) {
-            fetchPosts()
-            fetchDataUser()
-            checkToken()
-        }
+        readAddressFromToken()
+    }, [])
+
+    useEffect(() => {
+        if (!hashAddress) return
+
+        let cancelled = false
+        const isCancelled = () => cancelled
+
+        // reset semua state & cache saat pindah ke profil lain
+        extrasRequested.current = new Set()
+        serversRequested.current = new Set()
+        setPosts([])
+        setLikedPosts({})
+        setCommentCounts({})
+        setServerDetails({})
+        setUser({})
+
+        fetchPosts(isCancelled)
+        fetchDataUser(isCancelled)
+
+        return () => { cancelled = true }
     }, [hashAddress])
 
     const formatTimestamp = (timestamp) => {
@@ -180,12 +288,11 @@ const Wallet = () => {
     useEffect(() => {
         if (!posts || posts.length === 0) return
 
-        const uniqueServerIds = [
-            ...new Set(posts.map((p) => p.server).filter(Boolean))
-        ]
-
-        const idsToFetch = uniqueServerIds.filter((id) => !(id in serverDetails))
+        const idsToFetch = [...new Set(posts.map((p) => p.server).filter(Boolean))]
+            .filter((id) => !serversRequested.current.has(id))
         if (idsToFetch.length === 0) return
+
+        idsToFetch.forEach((id) => serversRequested.current.add(id))
 
         let isMounted = true
 
@@ -197,6 +304,7 @@ const Wallet = () => {
                         return [id, response?.data ?? null]
                     } catch (err) {
                         console.error(`Failed to fetch server ${id}`, err)
+                        serversRequested.current.delete(id) // boleh dicoba lagi nanti
                         return [id, null]
                     }
                 })
@@ -215,6 +323,10 @@ const Wallet = () => {
         fetchAll()
         return () => { isMounted = false }
     }, [posts])
+
+    // Tunggu router siap (hashAddress baru tersedia setelah ini).
+    // Harus di bawah semua hooks supaya urutan hooks tetap konsisten.
+    if (!router.isReady) return null
 
     const isOwner = address == user?.hash
     const initial = user?.displayName ? user.displayName.charAt(0).toUpperCase() : "?"
@@ -294,12 +406,13 @@ const Wallet = () => {
                                     >
                                         Follow
                                     </button>
-                                    <Link
-                                        href={address ? `/chat/${[address, hashAddress].sort().join("_")}` : "#"}
-                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-center transition-colors cursor-pointer"
+                                    <button
+                                        onClick={handleChat}
+                                        disabled={openingChat || !address}
+                                        className="flex-1 text-xs font-medium py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Chat
-                                    </Link>
+                                        {openingChat ? "..." : "Chat"}
+                                    </button>
                                     </>
                                 )}
                             </div>

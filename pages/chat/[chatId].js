@@ -5,8 +5,17 @@ import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import ConnectWallet from "@/components/connectWallet"
-import { getMessages, sendMessage, markRead } from "@/services/chat"
-import { dataUser } from "@/services/user"
+import { getMessages, sendMessage, markRead, getChatKeys } from "@/services/chat"
+import { dataUser, setPublicKey } from "@/services/user"
+import {
+    ensureKeyPair,
+    resetKeyPair,
+    encryptMessage,
+    decryptMessage,
+    fingerprint,
+} from "@/lib/chatCrypto"
+
+const MAX_CHARS = 4000 // jaga ciphertext tetap di bawah batas server (16KB base64)
 
 const truncateAddress = (address, start = 6, end = 12) => {
     if (!address) return ""
@@ -29,6 +38,11 @@ const formatDay = (d) =>
 
 const dayKey = (d) => (d ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` : "")
 
+const uploadPublicKey = async (publicKey) => {
+    const res = await setPublicKey(publicKey)
+    if (!res) throw new Error("Failed to upload public key")
+}
+
 const DetailChat = () => {
     const router = useRouter()
     const { chatId } = router.query
@@ -39,10 +53,21 @@ const DetailChat = () => {
     const [text, setText] = useState("")
     const [sending, setSending] = useState(false)
 
+    // ---- state enkripsi ----
+    // keyState: loading | ready | missing | mismatch | error
+    const [keyState, setKeyState] = useState("loading")
+    const [otherNoKey, setOtherNoKey] = useState(false)
+    const [otherFp, setOtherFp] = useState("")
+    const [keyChanged, setKeyChanged] = useState(false)
+
+    const privateKeyRef = useRef(null)
+    const plainCache = useRef(new Map()) // id pesan -> teks hasil dekripsi
+
     const bottomRef = useRef(null)
     const lastMarkedRef = useRef("")
 
     const otherHash = chatId ? String(chatId).split("_").find((h) => h !== myHash) : ""
+    const canSend = keyState === "ready" && !otherNoKey && !keyChanged
 
     useEffect(() => {
         const token = Cookies.get("token")
@@ -63,15 +88,90 @@ const DetailChat = () => {
         })
     }, [otherHash])
 
+    // 1) Siapkan keypair perangkat ini (buat + upload public key kalau belum ada)
     useEffect(() => {
-        if (!chatId || !myHash) return
+        if (!myHash) return
+        let active = true;
+
+        (async () => {
+            try {
+                const me = await dataUser(myHash)
+                const result = await ensureKeyPair(myHash, me?.data?.publicKey || null, uploadPublicKey)
+                if (!active) return
+
+                if (result.status === "ready") {
+                    privateKeyRef.current = result.privateKey
+                    setKeyState("ready")
+                } else {
+                    setKeyState(result.status) // missing | mismatch
+                }
+            } catch (err) {
+                console.error(err)
+                if (active) setKeyState("error")
+            }
+        })()
+
+        return () => {
+            active = false
+        }
+    }, [myHash])
+
+    // 2) Cek public key lawan bicara + deteksi perubahan kunci (trust on first use)
+    useEffect(() => {
+        if (!chatId || !otherHash || keyState !== "ready") return
         let active = true
+
+        ;(async () => {
+            const res = await getChatKeys(chatId)
+            const otherKey = res?.data?.publicKeys?.[otherHash]
+            if (!active) return
+
+            if (!otherKey) {
+                setOtherNoKey(true)
+                return
+            }
+
+            setOtherNoKey(false)
+            const fp = await fingerprint(otherKey)
+            if (!active) return
+            setOtherFp(fp)
+
+            const trusted = localStorage.getItem(`fp:${otherHash}`)
+            if (!trusted) {
+                localStorage.setItem(`fp:${otherHash}`, fp)
+            } else if (trusted !== fp) {
+                setKeyChanged(true)
+            }
+        })()
+
+        return () => {
+            active = false
+        }
+    }, [chatId, otherHash, keyState])
+
+    // 3) Ambil + dekripsi pesan (polling)
+    useEffect(() => {
+        if (!chatId || !myHash || keyState !== "ready") return
+        let active = true
+
+        const decodeAll = (rows) =>
+            Promise.all(
+                rows.map(async (m) => {
+                    if (!m.encrypted) return { ...m, plain: m.text ?? "" } // pesan lama (belum terenkripsi)
+                    if (plainCache.current.has(m.id)) return { ...m, plain: plainCache.current.get(m.id) }
+
+                    const plain = await decryptMessage(m, privateKeyRef.current)
+                    if (plain !== null) plainCache.current.set(m.id, plain)
+                    return { ...m, plain }
+                })
+            )
 
         const fetchMessages = async () => {
             const res = await getMessages(chatId)
             if (!active || !res) return
 
-            const list = [...(res.data || [])].reverse()
+            const list = await decodeAll([...(res.data || [])].reverse())
+            if (!active) return
             setMessages(list)
 
             const last = list[list.length - 1]
@@ -87,32 +187,164 @@ const DetailChat = () => {
             active = false
             clearInterval(timer)
         }
-    }, [chatId, myHash])
+    }, [chatId, myHash, keyState])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages.length])
 
+    const handleResetKey = async () => {
+        const ok = window.confirm(
+            "Membuat kunci baru akan membuat pesan lama TIDAK bisa dibaca lagi di semua perangkat. Lanjutkan?"
+        )
+        if (!ok) return
+
+        try {
+            privateKeyRef.current = await resetKeyPair(myHash, uploadPublicKey)
+            plainCache.current.clear()
+            setKeyState("ready")
+            toast.success("Kunci enkripsi baru dibuat")
+        } catch (err) {
+            console.error(err)
+            toast.error("Gagal membuat kunci baru")
+        }
+    }
+
+    const handleTrustNewKey = () => {
+        localStorage.setItem(`fp:${otherHash}`, otherFp)
+        setKeyChanged(false)
+    }
+
     const handleSend = async (e) => {
         e.preventDefault()
+
         const value = text.trim()
-        if (!value || sending) return
+        if (!value || sending || !canSend || !chatId) return
 
-        setSending(true)
-        const res = await sendMessage(chatId, { text: value })
-        setSending(false)
-
-        if (!res) {
-            toast.error("Failed to send message")
-            return
+        // Tampilkan pesan langsung di UI
+        const tempId = `temp-${Date.now()}-${Math.random()}`
+        const optimisticMessage = {
+            id: tempId,
+            senderId: myHash,
+            plain: value,
+            createdAt: new Date(),
+            encrypted: true,
+            status: "sending",
         }
 
+        setMessages((prev) => [...prev, optimisticMessage])
         setText("")
-        const refreshed = await getMessages(chatId)
-        if (refreshed) setMessages([...(refreshed.data || [])].reverse())
+        setSending(true)
+
+        try {
+            // Proses enkripsi dan pengiriman berjalan setelah UI diperbarui
+            const keysRes = await getChatKeys(chatId)
+            const publicKeys = keysRes?.data?.publicKeys
+
+            if (!publicKeys?.[myHash] || !publicKeys?.[otherHash]) {
+                throw new Error("Enkripsi belum aktif untuk salah satu pengguna")
+            }
+
+            // Verifikasi fingerprint terbaru
+            const fp = await fingerprint(publicKeys[otherHash])
+            const trusted = localStorage.getItem(`fp:${otherHash}`)
+
+            if (trusted && trusted !== fp) {
+                setOtherFp(fp)
+                setKeyChanged(true)
+                throw new Error("Kunci keamanan lawan bicara berubah")
+            }
+
+            // Enkripsi pesan
+            const payload = await encryptMessage(value, publicKeys)
+
+            // Kirim ke server
+            const res = await sendMessage(chatId, payload)
+
+            if (!res) {
+                throw new Error("Gagal mengirim pesan")
+            }
+
+            // Tandai pesan lokal sebagai terkirim.
+            // Jangan tunggu fetch ulang untuk memperbarui UI.
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m.id === tempId ? { ...m, status: "sent" } : m
+                )
+            )
+
+            // Sinkronisasi di background; tidak memblokir tampilan chat
+            getMessages(chatId)
+                .then(async (refreshed) => {
+                    if (!refreshed) return
+
+                    const rows = [...(refreshed.data || [])].reverse()
+
+                    const list = await Promise.all(
+                        rows.map(async (m) => {
+                            if (!m.encrypted) {
+                                return { ...m, plain: m.text ?? "" }
+                            }
+
+                            const cached = plainCache.current.get(m.id)
+                            if (cached !== undefined) {
+                                return { ...m, plain: cached }
+                            }
+
+                            const plain = await decryptMessage(
+                                m,
+                                privateKeyRef.current
+                            )
+
+                            if (plain !== null) {
+                                plainCache.current.set(m.id, plain)
+                            }
+
+                            return { ...m, plain }
+                        })
+                    )
+
+                    setMessages((prev) => {
+                        // Pertahankan pesan lokal jika belum muncul di server
+                        const serverIds = new Set(list.map((m) => m.id))
+                        const pending = prev.filter(
+                            (m) =>
+                                m.id.startsWith("temp-") &&
+                                !serverIds.has(m.id)
+                        )
+
+                        return [...list, ...pending]
+                    })
+                })
+                .catch((err) => {
+                    console.error("Background chat sync error:", err)
+                })
+        } catch (err) {
+            console.error(err)
+
+            // Hapus pesan optimistis jika pengiriman gagal
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== tempId)
+            )
+
+            // Pulihkan teks agar bisa dicoba kembali
+            setText(value)
+
+            toast.error(err.message || "Gagal mengirim pesan")
+        } finally {
+            setSending(false)
+        }
     }
 
     const displayName = otherUser?.displayName || truncateAddress(otherHash)
+
+    const renderText = (m) => {
+        if (m.deletedAt) return "Pesan dihapus"
+        if (m.plain === null || m.plain === undefined) return "🔒 Pesan tidak bisa didekripsi di perangkat ini"
+        return m.plain
+    }
+
+    const isUnreadable = (m) => !m.deletedAt && (m.plain === null || m.plain === undefined)
 
     return (
         <div className="flex flex-col gap-2 md:flex-row">
@@ -133,6 +365,50 @@ const DetailChat = () => {
 
                     <span />
                 </div>
+
+                {/* ---- banner status enkripsi ---- */}
+                {keyState === "ready" && !otherNoKey && !keyChanged && otherFp && (
+                    <p className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300" title="Bandingkan kode ini dengan lawan bicara untuk memastikan chat aman">
+                        🔒 Terenkripsi end-to-end · kode keamanan: {otherFp}
+                    </p>
+                )}
+
+                {(keyState === "missing" || keyState === "mismatch") && (
+                    <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+                        <p>
+                            {keyState === "missing"
+                                ? "Perangkat ini belum memiliki kunci enkripsi akun kamu, jadi pesan tidak bisa dibaca atau dikirim dari sini."
+                                : "Kunci enkripsi di server berbeda dengan yang ada di perangkat ini (mungkin diganti dari perangkat lain)."}
+                        </p>
+                        <button onClick={handleResetKey} className="mt-2 cursor-pointer font-semibold underline">
+                            Buat kunci baru di perangkat ini
+                        </button>
+                    </div>
+                )}
+
+                {keyState === "error" && (
+                    <div className="my-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-200">
+                        Gagal menyiapkan enkripsi. Muat ulang halaman, lalu coba lagi.
+                    </div>
+                )}
+
+                {otherNoKey && (
+                    <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+                        {displayName} belum mengaktifkan enkripsi. Kamu bisa mengirim pesan setelah dia membuka aplikasi.
+                    </div>
+                )}
+
+                {keyChanged && (
+                    <div className="my-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-200">
+                        <p>
+                            Kode keamanan {displayName} berubah (kode baru: {otherFp}). Bisa jadi dia ganti perangkat, tapi
+                            konfirmasi dulu lewat jalur lain sebelum melanjutkan.
+                        </p>
+                        <button onClick={handleTrustNewKey} className="mt-2 cursor-pointer font-semibold underline">
+                            Saya sudah verifikasi, percayai kunci baru
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto py-3">
                     {messages.length === 0 && (
@@ -167,14 +443,14 @@ const DetailChat = () => {
                                     {replied && (
                                         <div className="mb-1 flex max-w-[80%] items-stretch gap-2">
                                             <span className="w-0.5 rounded-full bg-blue-300 dark:bg-blue-400" />
-                                            <p className="truncate text-xs text-gray-400 dark:text-gray-300">{replied.text}</p>
+                                            <p className="truncate text-xs text-gray-400 dark:text-gray-300">{replied.plain ?? ""}</p>
                                         </div>
                                     )}
 
                                     <div className={`flex max-w-[80%] items-stretch gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                                         <span className={`w-1 shrink-0 rounded-full ${mine ? "bg-blue-500" : "bg-gray-900 dark:bg-white"}`} />
-                                        <p className={`whitespace-pre-wrap break-words py-0.5 text-[13px] leading-snug ${mine ? "text-right" : "text-left"} ${m.deletedAt ? "italic text-gray-400 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}>
-                                            {m.deletedAt ? "Pesan dihapus" : m.text}
+                                        <p className={`whitespace-pre-wrap break-words py-0.5 text-[13px] leading-snug ${mine ? "text-right" : "text-left"} ${m.deletedAt || isUnreadable(m) ? "italic text-gray-400 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}>
+                                            {renderText(m)}
                                         </p>
                                     </div>
 
@@ -195,12 +471,14 @@ const DetailChat = () => {
                     <input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        placeholder="Kirim.."
-                        className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-400"
+                        maxLength={MAX_CHARS}
+                        disabled={!canSend}
+                        placeholder={canSend ? "Kirim.." : keyState === "loading" ? "Menyiapkan enkripsi.." : "Pengiriman dinonaktifkan"}
+                        className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-gray-400"
                     />
 
                     {text.trim() ? (
-                        <button type="submit" disabled={sending} aria-label="Send" className="cursor-pointer text-blue-500 dark:text-blue-400 disabled:opacity-50">
+                        <button type="submit" disabled={sending || !canSend} aria-label="Send" className="cursor-pointer text-blue-500 dark:text-blue-400 disabled:opacity-50">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M22 2L11 13" />
                                 <path d="M22 2l-7 20-4-9-9-4 20-7z" />

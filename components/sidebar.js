@@ -89,7 +89,7 @@ const Sidebar = () => {
           hidden md:flex flex-col
           fixed top-[73px] left-0 z-40
           w-1/4 h-[calc(100vh-73px)]
-          border-r bg-white dark:bg-gray-900 dark:border-gray-800 px-1 lg:px-6
+          border-r bg-white dark:bg-black dark:border-gray-800 px-1 lg:px-6
           text-sm transition-colors
         "
       >
@@ -142,7 +142,7 @@ const Sidebar = () => {
         className="
           md:hidden
           fixed bottom-0 left-0 right-0 z-40
-          bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800
+          bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800
           pb-[env(safe-area-inset-bottom)] transition-colors
         "
       >

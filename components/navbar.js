@@ -2,7 +2,7 @@ import Link from "next/link"
 
 const Navbar = () => {
     return (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 h-[73px] transition-colors">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-black border-b border-gray-300 dark:border-gray-700 h-[73px] transition-colors">
             <div className="px-4 md:px-6 h-full text-sm flex justify-center items-center">
                 <Link
                     href="/search"

@@ -200,16 +200,6 @@ const Sidebar = () => {
               </Link>
             )
           })}
-
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-pressed={isDark}
-            className="flex items-center justify-center w-12 h-12 text-gray-500 dark:text-gray-300"
-          >
-            {isDark ? <SunIcon /> : <MoonIcon />}
-          </button>
         </div>
       </div>
     </>

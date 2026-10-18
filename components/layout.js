@@ -2,6 +2,7 @@ import { Poppins } from 'next/font/google'
 import Head from 'next/head'
 import Navbar from './navbar'
 import Sidebar from './sidebar'
+import SplashScreen from './splashScreen'
 
 const poppins = Poppins({ 
   subsets: ['latin'], 
@@ -18,9 +19,10 @@ export default function Layout({ children }) {
         <Navbar />
         <Sidebar />
 
-        {/* pt-navbar selalu ada; pb-bottombar hanya mobile; ml-sidebar hanya desktop */}
         <div className="pt-[73px] pb-16 md:pb-0 md:ml-[25%] min-h-screen bg-white dark:bg-black text-gray-900 dark:text-gray-100 transition-colors">
-          {children}
+          <SplashScreen>
+            {children}
+          </SplashScreen>
         </div>
       </main>
     </>

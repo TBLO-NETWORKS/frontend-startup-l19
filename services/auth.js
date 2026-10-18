@@ -1,6 +1,6 @@
 import callApi from "@/lib/api";
 
-const ROOT_API = "http://localhost:8000"
+const ROOT_API = "https://samuraiposeidon.vercel.app"
 
 export async function setRegister(data) {
     const url = `${ROOT_API}/auth/register`

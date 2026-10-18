@@ -18,23 +18,40 @@ const MoonIcon = () => (
   </svg>
 )
 
+const SidebarItemSkeleton = () => (
+  <div className="py-3 px-3 rounded-xl flex items-center gap-3 animate-pulse">
+    <div className="w-6 h-6 shrink-0 rounded-md bg-gray-200 dark:bg-gray-700"></div>
+    <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+  </div>
+)
+
+const BottomItemSkeleton = () => (
+  <div className="flex items-center justify-center w-12 h-12 animate-pulse">
+    <div className="w-6 h-6 rounded-md bg-gray-200 dark:bg-gray-700"></div>
+  </div>
+)
+
 const Sidebar = () => {
   const [hashAddress, setHashAddress] = useState("")
+  const [loadingAuth, setLoadingAuth] = useState(true)
   const [isDark, setIsDark] = useState(false)
 
   const router = useRouter()
 
   const checkToken = async() => {
-    const token = await Cookies.get("token")
-    if(token) {
-      const jwtToken = atob(token)
-      const payload = jwtDecode(jwtToken)
-      const hashFromPayload = payload.hash
-      setHashAddress(hashFromPayload)
+    try {
+      const token = await Cookies.get("token")
+      if(token) {
+        const jwtToken = atob(token)
+        const payload = jwtDecode(jwtToken)
+        const hashFromPayload = payload.hash
+        setHashAddress(hashFromPayload)
+      }
+    } finally {
+      setLoadingAuth(false)
     }
   }
 
-  // Ambil preferensi tema saat pertama kali load
   useEffect(() => {
     const saved = localStorage.getItem('theme')
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -60,7 +77,7 @@ const Sidebar = () => {
     { label: 'Your Server', icon: '/icon/community.png', href: serverHref },
     { label: 'Messages', icon: '/icon/messages.png', href: '/chats' },
     { label: 'Notifications', icon: '/icon/notifications.png', href: '/notifications' },
-    { label: hashAddress ? 'Profile' : 'Login', icon: hashAddress ? '/icon/wallet.png' : '/icon/login.png', href: profileHref },
+    { label: hashAddress ? 'Profile' : 'Login', icon: hashAddress ? '/icon/wallet.png' : '/icon/login.png', href: profileHref, auth: true },
     { label: 'Create Server', icon: '/icon/add.png', href: createServerHref },
   ]
 
@@ -69,7 +86,7 @@ const Sidebar = () => {
     { label: 'Your Server', icon: '/icon/community.png', href: serverHref },
     { label: 'Post', icon: '/icon/add_white.png', href: createPostHref, primary: true },
     { label: 'Notifications', icon: '/icon/notifications.png', href: '/notifications' },
-    { label: hashAddress ? 'Profile' : 'Login', icon: hashAddress ? '/icon/wallet.png' : '/icon/login.png', href: profileHref },
+    { label: hashAddress ? 'Profile' : 'Login', icon: hashAddress ? '/icon/wallet.png' : '/icon/login.png', href: profileHref, auth: true },
   ]
 
   const isActive = (href) => {
@@ -83,7 +100,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Desktop sidebar */}
       <div
         className="
           hidden md:flex flex-col
@@ -104,6 +120,8 @@ const Sidebar = () => {
           </Link>
 
           {sidebarItems.map((item) => {
+            if (item.auth && loadingAuth) return <SidebarItemSkeleton key="auth-skeleton" />
+
             const active = isActive(item.href)
 
             return (
@@ -124,7 +142,6 @@ const Sidebar = () => {
           })}
         </div>
 
-        {/* Tombol toggle dark mode (desktop) */}
         <button
           type="button"
           onClick={toggleDarkMode}
@@ -137,7 +154,6 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Bottom bar mobile */}
       <div
         className="
           md:hidden
@@ -148,6 +164,8 @@ const Sidebar = () => {
       >
         <div className="h-16 flex items-center justify-around px-2">
           {bottomItems.map((item) => {
+            if (item.auth && loadingAuth) return <BottomItemSkeleton key="auth-skeleton" />
+
             const active = isActive(item.href)
 
             if (item.primary) {
@@ -183,7 +201,6 @@ const Sidebar = () => {
             )
           })}
 
-          {/* Tombol toggle dark mode (mobile) */}
           <button
             type="button"
             onClick={toggleDarkMode}

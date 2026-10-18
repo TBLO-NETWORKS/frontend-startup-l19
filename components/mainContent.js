@@ -43,8 +43,23 @@ const DotsIcon = () => (
   </svg>
 )
 
+const PostSkeleton = () => (
+  <div className="border-b border-gray-200 dark:border-gray-700 pb-6 animate-pulse">
+    <div className="flex gap-3 items-center">
+      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-28 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div className="h-2.5 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+      </div>
+    </div>
+    <div className="mt-3 h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+    <div className="mt-3 h-[200px] md:max-w-[375px] rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
+  </div>
+)
+
 const MainContent = () => {
   const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [likedPosts, setLikedPosts] = useState({})
   const [commentCounts, setCommentCounts] = useState({})
 
@@ -80,6 +95,7 @@ const MainContent = () => {
 
   const fetchPosts = async () => {
     const response = await getAllPosts()
+    setLoading(false)
     if (!response) {
       toast.error("Failed to fetch posts")
     } else {
@@ -89,12 +105,22 @@ const MainContent = () => {
     }
   }
 
+  const applyLike = (postId, liked, delta) => {
+    setLikedPosts((prev) => ({ ...prev, [postId]: liked }))
+    setPosts((prev) =>
+      prev.map((post) => (post.id === postId ? { ...post, likesCount: (post.likesCount || 0) + delta } : post))
+    )
+  }
+
   const handlerLike = async (postId) => {
+    const wasLiked = Boolean(likedPosts[postId])
+    const delta = wasLiked ? -1 : 1
+    applyLike(postId, !wasLiked, delta)
+
     const response = await toggleLikePost(postId)
     if (!response) {
+      applyLike(postId, wasLiked, -delta)
       toast.error("Failed to like post")
-    } else {
-      fetchPosts()
     }
   }
 
@@ -168,89 +194,97 @@ const MainContent = () => {
         </Link>
 
         <div className="mt-5 flex flex-col gap-6">
-          {posts?.map((post) => {
-            const isLiked = Boolean(likedPosts[post.id])
-            const commentCount = commentCounts[post.id] ?? 0
+          {loading ? (
+            <>
+              <PostSkeleton />
+              <PostSkeleton />
+              <PostSkeleton />
+            </>
+          ) : (
+            posts?.map((post) => {
+              const isLiked = Boolean(likedPosts[post.id])
+              const commentCount = commentCounts[post.id] ?? 0
 
-            return (
-              <div key={post.id} className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                <div className="flex items-start justify-between gap-2">
-                  <Link href={`/${post.user}`} className="flex gap-3 items-center">
-                    <div className="p-4 bg-blue-300 dark:bg-blue-400 rounded-full"></div>
+              return (
+                <div key={post.id} className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/${post.user}`} className="flex gap-3 items-center">
+                      <div className="p-4 bg-blue-300 dark:bg-blue-400 rounded-full"></div>
 
-                    <div className="text-xs">
-                      <h2 className="font-semibold text-xs truncate dark:text-white">{getName(post)}</h2>
-                      <p className="opacity-50 dark:opacity-100 dark:text-gray-400 text-[11px]">
-                        {post.createdAt ? formatTimestamp(post.createdAt) : "-"}
-                      </p>
-                      <p className="mt-1 text-sm dark:text-gray-100">{post.caption}</p>
+                      <div className="text-xs">
+                        <h2 className="font-semibold text-xs truncate dark:text-white">{getName(post)}</h2>
+                        <p className="opacity-50 dark:opacity-100 dark:text-gray-400 text-[11px]">
+                          {post.createdAt ? formatTimestamp(post.createdAt) : "-"}
+                        </p>
+                        <p className="mt-1 text-sm dark:text-gray-100">{post.caption}</p>
+                      </div>
+                    </Link>
+
+                    <button className="cursor-pointer text-gray-500 dark:text-gray-300 shrink-0" aria-label="More options">
+                      <DotsIcon />
+                    </button>
+                  </div>
+
+                  {post.image ? (
+                    <div className="mt-3 flex flex-row gap-3">
+                      <div className="flex flex-col justify-between py-1 shrink-0">
+                        <div className="flex flex-col items-center gap-5">
+                          <button
+                            className="cursor-pointer flex flex-col items-center gap-1"
+                            onClick={() => handlerLike(post.id)}
+                            aria-label={isLiked ? "Unlike" : "Like"}
+                            aria-pressed={isLiked}
+                          >
+                            <HeartIcon filled={isLiked} size={20} />
+                            <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
+                          </button>
+                          <Link href={`/post/${post.id}`} className="cursor-pointer flex flex-col items-center gap-1">
+                            <Image src="/icon/comment.png" alt="Comment" width={20} height={20} className="dark:invert" />
+                            <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
+                          </Link>
+                          <Link href={`/post/${post.id}`} className="cursor-pointer">
+                            <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
+                          </Link>
+                        </div>
+
+                        <button className="cursor-pointer">
+                          <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
+                        </button>
+                      </div>
+                      <div className="bg-red-200 dark:bg-gray-700 dark:border dark:border-gray-600 rounded-2xl flex-1 h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:max-w-[375px]"></div>
                     </div>
-                  </Link>
+                  ) : (
+                    <div className="mt-2">
+                      <div className="flex justify-between py-1 gap-6">
+                        <div className="flex gap-6">
+                          <button
+                            className="cursor-pointer flex items-center gap-1"
+                            onClick={() => handlerLike(post.id)}
+                            aria-label={isLiked ? "Unlike" : "Like"}
+                            aria-pressed={isLiked}
+                          >
+                            <HeartIcon filled={isLiked} size={15} />
+                            <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
+                          </button>
+                          <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
+                            <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
+                            <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
+                          </Link>
+                          <Link href={`/post/${post.id}`} className="cursor-pointer">
+                            <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
+                          </Link>
+                        </div>
 
-                  <button className="cursor-pointer text-gray-500 dark:text-gray-300 shrink-0" aria-label="More options">
-                    <DotsIcon />
-                  </button>
+                        <button className="cursor-pointer">
+                          <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {post.image ? (
-                  <div className="mt-3 flex flex-row gap-3">
-                    <div className="flex flex-col justify-between py-1 shrink-0">
-                      <div className="flex flex-col items-center gap-5">
-                        <button
-                          className="cursor-pointer flex flex-col items-center gap-1"
-                          onClick={() => handlerLike(post.id)}
-                          aria-label={isLiked ? "Unlike" : "Like"}
-                          aria-pressed={isLiked}
-                        >
-                          <HeartIcon filled={isLiked} size={20} />
-                          <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
-                        </button>
-                        <Link href={`/post/${post.id}`} className="cursor-pointer flex flex-col items-center gap-1">
-                          <Image src="/icon/comment.png" alt="Comment" width={20} height={20} className="dark:invert" />
-                          <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
-                        </Link>
-                        <Link href={`/post/${post.id}`} className="cursor-pointer">
-                          <Image src="/icon/reward.png" alt="Reward This Post" width={25} height={25} />
-                        </Link>
-                      </div>
-
-                      <button className="cursor-pointer">
-                        <Image src="/icon/share.png" alt="Share" width={20} height={20} className="dark:invert" />
-                      </button>
-                    </div>
-                    <div className="bg-red-200 dark:bg-gray-700 dark:border dark:border-gray-600 rounded-2xl flex-1 h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:max-w-[375px]"></div>
-                  </div>
-                ) : (
-                  <div className="mt-2">
-                    <div className="flex justify-between py-1 gap-6">
-                      <div className="flex gap-6">
-                        <button
-                          className="cursor-pointer flex items-center gap-1"
-                          onClick={() => handlerLike(post.id)}
-                          aria-label={isLiked ? "Unlike" : "Like"}
-                          aria-pressed={isLiked}
-                        >
-                          <HeartIcon filled={isLiked} size={15} />
-                          <p className="text-[10px] dark:text-gray-200">{post.likesCount}</p>
-                        </button>
-                        <Link href={`/post/${post.id}`} className="cursor-pointer flex items-center gap-1">
-                          <Image src="/icon/comment.png" alt="Comment" width={15} height={15} className="dark:invert" />
-                          <p className="text-[10px] dark:text-gray-200">{commentCount}</p>
-                        </Link>
-                        <Link href={`/post/${post.id}`} className="cursor-pointer">
-                          <Image src="/icon/reward.png" alt="Reward This Post" width={20} height={20} />
-                        </Link>
-                      </div>
-
-                      <button className="cursor-pointer">
-                        <Image src="/icon/share.png" alt="Share" width={15} height={15} className="dark:invert" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
       </div>
     </div>

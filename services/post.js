@@ -1,6 +1,6 @@
 import callApi from "@/lib/api";
 
-const ROOT_API = "http://localhost:8000"
+const ROOT_API = "https://samuraiposeidon.vercel.app"
 
 export async function getAllPosts() {
     const url = `${ROOT_API}/post/all`

@@ -7,8 +7,19 @@ import ConnectWallet from "@/components/connectWallet"
 import { listChats } from "@/services/chat"
 import { dataUser } from "@/services/user"
 
+const ChatSkeleton = () => (
+    <div className="flex items-center gap-3 px-2 py-2.5 animate-pulse">
+        <div className="h-12 w-12 shrink-0 rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
+        <div className="flex-1 flex flex-col gap-2">
+            <div className="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+            <div className="h-3 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+    </div>
+)
+
 const ListChats = () => {
     const [chats, setChats] = useState([])
+    const [loading, setLoading] = useState(true)
     const [keyword, setKeyword] = useState("")
     const [filter, setFilter] = useState("all")
     const [myHash, setMyHash] = useState("")
@@ -26,7 +37,9 @@ const ListChats = () => {
     }, [])
 
     useEffect(() => {
-        listChats().then((res) => setChats(res?.data?.data || res?.data || []))
+        listChats()
+            .then((res) => setChats(res?.data?.data || res?.data || []))
+            .finally(() => setLoading(false))
     }, [])
 
     useEffect(() => {
@@ -119,11 +132,20 @@ const ListChats = () => {
                     </div>
 
                     <div className="border-t dark:border-gray-700">
-                        {shown.length === 0 && (
+                        {loading && (
+                            <>
+                                <ChatSkeleton />
+                                <ChatSkeleton />
+                                <ChatSkeleton />
+                                <ChatSkeleton />
+                            </>
+                        )}
+
+                        {!loading && shown.length === 0 && (
                             <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-300">Belum ada chat</p>
                         )}
 
-                        {shown.map((c) => {
+                        {!loading && shown.map((c) => {
                             const unread = isUnread(c)
                             const time = toDate(c.lastMessage?.createdAt)
                             return (

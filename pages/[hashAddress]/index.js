@@ -68,6 +68,40 @@ const RepostIcon = ({ active }) => (
     </svg>
 )
 
+const PostSkeleton = () => (
+    <div className="border-b border-gray-200 dark:border-gray-700 pb-6 animate-pulse">
+        <div className="flex gap-2 items-center">
+            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+            <div className="flex flex-col gap-2">
+                <div className="h-3 w-28 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-2.5 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+            </div>
+        </div>
+        <div className="mt-3 h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div className="mt-3 h-[200px] w-full md:w-[300px] lg:w-[375px] rounded bg-gray-200 dark:bg-gray-700"></div>
+    </div>
+)
+
+const ProfileSkeleton = () => (
+    <div className="px-4 md:px-6 animate-pulse">
+        <div className="flex gap-4 items-start mt-2">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
+            <div className="flex-1 min-w-0">
+                <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="mt-3 h-6 w-32 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                <div className="mt-3 flex gap-2">
+                    <div className="h-8 flex-1 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+                    <div className="h-8 flex-1 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+            </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+            <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+            <div className="h-3 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+    </div>
+)
+
 // Jalankan fn untuk setiap item, maksimal `size` request bersamaan
 // (supaya tidak menembak puluhan request sekaligus)
 const mapInBatches = async (items, size, fn) => {
@@ -92,6 +126,8 @@ const Wallet = () => {
     const [address, setAddress] = useState("")
     const [user, setUser] = useState({})
     const [posts, setPosts] = useState([])
+    const [loadingPosts, setLoadingPosts] = useState(true)
+    const [loadingUser, setLoadingUser] = useState(true)
     const [likedPosts, setLikedPosts] = useState({})
     const [commentCounts, setCommentCounts] = useState({})
     const [serverDetails, setServerDetails] = useState({})
@@ -136,6 +172,7 @@ const Wallet = () => {
     const fetchPosts = async (isCancelled) => {
         const response = await getPersonalPosts(hashAddress)
         if (isCancelled?.()) return
+        setLoadingPosts(false)
         if (!response) {
             toast.error("Failed to fetch posts")
         } else {
@@ -147,6 +184,7 @@ const Wallet = () => {
     const fetchDataUser = async (isCancelled) => {
         const response = await dataUser(hashAddress)
         if (isCancelled?.()) return
+        setLoadingUser(false)
         if (!response) {
             toast.error("Failed to fetch user")
         } else {
@@ -252,6 +290,8 @@ const Wallet = () => {
         // reset semua state & cache saat pindah ke profil lain
         extrasRequested.current = new Set()
         serversRequested.current = new Set()
+        setLoadingPosts(true)
+        setLoadingUser(true)
         setPosts([])
         setLikedPosts({})
         setCommentCounts({})
@@ -356,6 +396,9 @@ const Wallet = () => {
                     )}
                 </div>
 
+                {loadingUser ? (
+                    <ProfileSkeleton />
+                ) : (
                 <div className="px-4 md:px-6">
                     <div className="flex gap-4 items-start mt-2">
                         <div className="relative shrink-0">
@@ -441,6 +484,7 @@ const Wallet = () => {
                         )}
                     </div>
                 </div>
+                )}
 
                 <div className="mt-4 flex border-b border-gray-200 dark:border-gray-700">
                     <button
@@ -460,7 +504,7 @@ const Wallet = () => {
                 </div>
 
                 <div className="px-4 md:px-6">
-                    {activeTab === "posts" && (!posts || posts.length === 0) && (
+                    {activeTab === "posts" && !loadingPosts && (!posts || posts.length === 0) && (
                         <div className="flex flex-col items-center text-center py-16">
                             <div className="w-24 h-24 rounded-3xl bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -491,7 +535,13 @@ const Wallet = () => {
 
                     {activeTab === "posts" && (
                         <div className="mt-4 flex flex-col gap-6">
-                            {posts?.map((post) => {
+                            {loadingPosts ? (
+                                <>
+                                    <PostSkeleton />
+                                    <PostSkeleton />
+                                    <PostSkeleton />
+                                </>
+                            ) : posts?.map((post) => {
                                 const server = serverDetails[post.server]
                                 const isLiked = Boolean(likedPosts[post.id])
                                 const commentCount = commentCounts[post.id] ?? 0

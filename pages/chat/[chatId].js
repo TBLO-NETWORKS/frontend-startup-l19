@@ -1,4 +1,3 @@
-
 import Link from "next/link"
 import Cookies from "js-cookie"
 import { jwtDecode } from "jwt-decode"
@@ -64,6 +63,12 @@ const mergeMessages = (serverMessages, currentMessages) => {
     return [...serverMessages, ...pendingMessages]
 }
 
+const MessageSkeleton = ({ mine, width }) => (
+    <div className={`mb-3 flex px-1 ${mine ? "justify-end" : "justify-start"}`}>
+        <div className={`h-4 rounded bg-gray-200 dark:bg-gray-700 ${width}`}></div>
+    </div>
+)
+
 const DetailChat = () => {
     const router = useRouter()
     const { chatId } = router.query
@@ -71,6 +76,7 @@ const DetailChat = () => {
     const [myHash, setMyHash] = useState("")
     const [otherUser, setOtherUser] = useState(null)
     const [messages, setMessages] = useState([])
+    const [loadingMessages, setLoadingMessages] = useState(true)
     const [text, setText] = useState("")
     const [sending, setSending] = useState(false)
 
@@ -90,6 +96,7 @@ const DetailChat = () => {
         : ""
 
     const canSend = keyState === "ready" && !otherNoKey && !keyChanged
+    const showSkeleton = loadingMessages && (keyState === "loading" || keyState === "ready")
 
     useEffect(() => {
         const token = Cookies.get("token")
@@ -266,6 +273,7 @@ const DetailChat = () => {
                 console.error("Gagal mengambil pesan:", err)
             } finally {
                 fetching = false
+                if (active) setLoadingMessages(false)
             }
         }
 
@@ -517,7 +525,17 @@ const DetailChat = () => {
                 )}
 
                 <div className="flex-1 overflow-y-auto py-3">
-                    {messages.length === 0 && (
+                    {showSkeleton && (
+                        <div className="animate-pulse">
+                            <MessageSkeleton width="w-40" />
+                            <MessageSkeleton mine width="w-56" />
+                            <MessageSkeleton width="w-64" />
+                            <MessageSkeleton mine width="w-32" />
+                            <MessageSkeleton width="w-48" />
+                        </div>
+                    )}
+
+                    {!showSkeleton && messages.length === 0 && (
                         <p className="py-10 text-center text-xs text-gray-400 dark:text-gray-300">
                             Belum ada pesan, mulai percakapan!
                         </p>

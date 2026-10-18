@@ -27,6 +27,33 @@ const HeartIcon = ({ filled, size = 20 }) => (
     </svg>
 )
 
+const ServerHeaderSkeleton = () => (
+    <div className="animate-pulse">
+        <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div className="mt-5 flex justify-between items-center">
+            <div className="h-6 w-40 rounded bg-gray-200 dark:bg-gray-700"></div>
+            <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+        <div className="mt-3 h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <hr className="mt-4 border border-gray-200 dark:border-gray-700" />
+        <div className="mt-2 h-9 w-28 rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
+    </div>
+)
+
+const PostSkeleton = () => (
+    <div className="border-b border-gray-300 dark:border-gray-700 pb-6 animate-pulse">
+        <div className="flex gap-2 items-center">
+            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+            <div className="flex flex-col gap-2">
+                <div className="h-3 w-28 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-2.5 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+            </div>
+        </div>
+        <div className="mt-3 h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div className="mt-3 h-[200px] w-full md:w-[300px] lg:w-[375px] rounded bg-gray-200 dark:bg-gray-700"></div>
+    </div>
+)
+
 const DetailServer = () => {
     const [server, setServer] = useState({})
     const [serverPosts, setServerPosts] = useState([])
@@ -34,6 +61,8 @@ const DetailServer = () => {
     const [commentCounts, setCommentCounts] = useState({})
     const [user, setUser] = useState("")
     const [loading, setLoading] = useState(false)
+    const [loadingServer, setLoadingServer] = useState(true)
+    const [loadingPosts, setLoadingPosts] = useState(true)
 
     const [owner, setOwner] = useState(false)
     const [join, setJoin] = useState(false)
@@ -49,6 +78,7 @@ const DetailServer = () => {
 
     const fetchDetailServer = async() => {
         const response = await getDetailServer(idServer)
+        setLoadingServer(false)
 
         if(!response) {
             toast.error("Failed to fetch servers!")
@@ -84,6 +114,7 @@ const DetailServer = () => {
 
     const fetchServerPosts = async() => {
         const response = await getServerPosts(idServer)
+        setLoadingPosts(false)
 
         if(!response) {
             toast.error("Failed to fetch servers!")
@@ -94,12 +125,22 @@ const DetailServer = () => {
         }
     }
 
+    const applyLike = (postId, liked, delta) => {
+        setLikedPosts((prev) => ({ ...prev, [postId]: liked }))
+        setServerPosts((prev) =>
+            prev.map((post) => (post.id === postId ? { ...post, likesCount: (post.likesCount || 0) + delta } : post))
+        )
+    }
+
     const handlerLike = async (postId) => {
+        const wasLiked = Boolean(likedPosts[postId])
+        const delta = wasLiked ? -1 : 1
+        applyLike(postId, !wasLiked, delta)
+
         const response = await toggleLikePost(postId)
         if (!response) {
+            applyLike(postId, wasLiked, -delta)
             toast.error("Failed to like post")
-        } else {
-            fetchServerPosts()
         }
     }
 
@@ -134,6 +175,8 @@ const DetailServer = () => {
 
     useEffect(() => {
         if(idServer) {
+            setLoadingServer(true)
+            setLoadingPosts(true)
             fetchDetailServer()
             fetchServerPosts()
         }
@@ -222,50 +265,62 @@ const DetailServer = () => {
         <div className="flex flex-col gap-2 md:flex-row">
             <div className="w-full md:w-2/3 border-0 md:border-r dark:border-gray-700 px-2 text-gray-900 dark:text-white transition-colors">
                 <div className="mt-4">
-                    <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-400">category : {server.category}</p>
-                    <div className="flex justify-between items-center">
-                        <h1 className="text-xl font-semibold mt-5 dark:text-white">{server.serverName}</h1>
-                        <p className="text-sm mt-4 opacity-50 dark:opacity-100 dark:text-gray-400"><span className="font-semibold opacity-100 dark:text-white">{server.members}</span> members</p>
-                    </div>
-                    <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-300 mt-1">{server.desc}</p>
-                    <hr className="mt-4 opacity-50 dark:opacity-100 border border-gray-400 dark:border-gray-700" />
-                    <div className="mt-2 flex justify-between">
-                        {owner ? (
-                            <button className="bg-green-500 hover:bg-green-600 cursor-pointer transition-all duration-300 text-white px-4 py-2 rounded-2xl text-sm">
-                                You're the Owner
-                            </button>
-                        ) : join ? (
-                            <button
-                                disabled={loading}
-                                onClick={handleLeaveServer}
-                                className="bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm transition-colors"
-                            >
-                                Joined
-                            </button>
-                        ) : (
-                            <button
-                                disabled={loading}
-                                onClick={handleJoinServer}
-                                className="bg-blue-500 hover:bg-blue-600 transition-all duration-300 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm"
-                            >
-                                Join
-                            </button>
-                        )}
+                    {loadingServer ? (
+                        <ServerHeaderSkeleton />
+                    ) : (
+                        <>
+                            <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-400">category : {server.category}</p>
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-xl font-semibold mt-5 dark:text-white">{server.serverName}</h1>
+                                <p className="text-sm mt-4 opacity-50 dark:opacity-100 dark:text-gray-400"><span className="font-semibold opacity-100 dark:text-white">{server.members}</span> members</p>
+                            </div>
+                            <p className="text-sm opacity-50 dark:opacity-100 dark:text-gray-300 mt-1">{server.desc}</p>
+                            <hr className="mt-4 opacity-50 dark:opacity-100 border border-gray-400 dark:border-gray-700" />
+                            <div className="mt-2 flex justify-between">
+                                {owner ? (
+                                    <button className="bg-green-500 hover:bg-green-600 cursor-pointer transition-all duration-300 text-white px-4 py-2 rounded-2xl text-sm">
+                                        You're the Owner
+                                    </button>
+                                ) : join ? (
+                                    <button
+                                        disabled={loading}
+                                        onClick={handleLeaveServer}
+                                        className="bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm transition-colors"
+                                    >
+                                        Joined
+                                    </button>
+                                ) : (
+                                    <button
+                                        disabled={loading}
+                                        onClick={handleJoinServer}
+                                        className="bg-blue-500 hover:bg-blue-600 transition-all duration-300 cursor-pointer text-white px-4 py-2 rounded-2xl text-sm"
+                                    >
+                                        Join
+                                    </button>
+                                )}
 
-                        {join ? (
-                            <Link href={`/server/${idServer}/create`} className="border cursor-pointer flex items-center justify-between gap-1 border-blue-500 text-blue-500 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500/15 px-4 py-2 rounded-2xl text-sm transition-colors">
-                                <Image className="text-blue-500" src="/icon/add_blue.png" alt="Add" width={20} height={15} />
-                                Create Post
-                            </Link>
-                        ) :
-                        (
-                            <div></div>
-                        )
-                        }
-                    </div>
+                                {join ? (
+                                    <Link href={`/server/${idServer}/create`} className="border cursor-pointer flex items-center justify-between gap-1 border-blue-500 text-blue-500 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500/15 px-4 py-2 rounded-2xl text-sm transition-colors">
+                                        <Image className="text-blue-500" src="/icon/add_blue.png" alt="Add" width={20} height={15} />
+                                        Create Post
+                                    </Link>
+                                ) :
+                                (
+                                    <div></div>
+                                )
+                                }
+                            </div>
+                        </>
+                    )}
 
                     <div className="mt-8 flex flex-col gap-6">
-                        {serverPosts?.map((post) => {
+                        {loadingPosts ? (
+                            <>
+                                <PostSkeleton />
+                                <PostSkeleton />
+                                <PostSkeleton />
+                            </>
+                        ) : serverPosts?.map((post) => {
                             const isLiked = Boolean(likedPosts[post.id])
                             const commentCount = commentCounts[post.id] ?? 0
 

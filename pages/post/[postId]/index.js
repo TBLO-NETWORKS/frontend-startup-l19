@@ -52,6 +52,61 @@ const formatTimestamp = (timestamp) => {
     });
 }
 
+const SkeletonBlock = ({ className = "" }) => (
+    <div className={`bg-gray-200 dark:bg-gray-700 rounded ${className}`} />
+)
+
+const PostSkeleton = () => (
+    <div className="animate-pulse" role="status" aria-label="Loading post">
+        <SkeletonBlock className="mt-6 h-3 w-10" />
+
+        <div className="mt-4 border-b border-gray-300 dark:border-gray-600 pb-6">
+            <div className="flex gap-2 items-center">
+                <SkeletonBlock className="h-8 w-8 rounded-full shrink-0" />
+                <div className="flex flex-col gap-2">
+                    <SkeletonBlock className="h-3 w-40" />
+                    <SkeletonBlock className="h-2.5 w-28" />
+                </div>
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+                <SkeletonBlock className="h-3 w-full" />
+                <SkeletonBlock className="h-3 w-2/3" />
+            </div>
+
+            <div className="mt-4 flex flex-col md:flex-row">
+                <div className="flex flex-row md:flex-col gap-6 py-3 md:px-3 order-2 md:order-1">
+                    <SkeletonBlock className="h-5 w-5" />
+                    <SkeletonBlock className="h-5 w-5" />
+                    <SkeletonBlock className="h-5 w-5" />
+                    <SkeletonBlock className="h-5 w-5" />
+                </div>
+                <SkeletonBlock className="w-full h-[280px] sm:h-[375px] md:h-[300px] lg:h-[375px] md:w-[300px] lg:w-[375px] order-1 md:order-2 rounded-none" />
+            </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2">
+            <SkeletonBlock className="h-[76px] w-full rounded-lg" />
+            <div className="flex items-center justify-between">
+                <SkeletonBlock className="h-2.5 w-10" />
+                <SkeletonBlock className="h-8 w-24 rounded-lg" />
+            </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4">
+            {[0, 1, 2].map((i) => (
+                <div key={i} className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+                    <SkeletonBlock className="h-8 w-8 rounded-full shrink-0" />
+                    <div className="flex-1 flex flex-col gap-2">
+                        <SkeletonBlock className="h-3 w-48" />
+                        <SkeletonBlock className="h-3 w-full" />
+                        <SkeletonBlock className="h-3 w-3/4" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+)
+
 const DetailPost = () => {
     const [post, setPost] = useState(null)
     const [server, setServer] = useState(null)
@@ -171,7 +226,7 @@ const DetailPost = () => {
         <div className="flex flex-col gap-2 md:flex-row pb-12 text-gray-900 dark:text-gray-100">
             <div className="w-full md:w-2/3 border-0 md:border-r border-gray-200 dark:border-gray-700 px-4 md:px-6">
                 {loading ? (
-                    <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                    <PostSkeleton />
                 ) : !post ? (
                     <div className="mt-8">
                         <p className="text-sm text-gray-500 dark:text-gray-400">Post not found.</p>

@@ -401,7 +401,7 @@ const DetailChat = () => {
                 {/* ---- banner status enkripsi ---- */}
                 {keyState === "ready" && !keyChanged && (
                     <div className="my-2 rounded-lg bg-yellow-50 p-3 text-center text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-                        End-to-end encrypted
+                        chat encrypted with end to end encryption
                     </div>
                 )}
 

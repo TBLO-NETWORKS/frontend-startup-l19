@@ -493,7 +493,7 @@ const DetailChat = () => {
                         onChange={(e) => setText(e.target.value)}
                         maxLength={MAX_CHARS}
                         disabled={!canSend}
-                        placeholder={canSend ? "Kirim.." : keyState === "loading" ? "Menyiapkan enkripsi.." : "Pengiriman dinonaktifkan"}
+                        placeholder={canSend ? "Kirim.." : keyState === "loading" ? "Menyiapkan enkripsi.." : `Pengiriman dinonaktifkan (${keyChanged ? "kode keamanan berubah" : keyState})`}
                         className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-gray-400"
                     />
 

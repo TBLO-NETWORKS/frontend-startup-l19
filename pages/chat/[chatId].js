@@ -272,7 +272,7 @@ const DetailChat = () => {
 
     const handleResetKey = async () => {
         const ok = window.confirm(
-            "Membuat kunci baru akan membuat pesan lama TIDAK bisa dibaca lagi di semua perangkat. Lanjutkan?"
+            "Creating a new key means old messages can NO LONGER be read on any device. Continue?"
         )
         if (!ok) return
 
@@ -280,10 +280,10 @@ const DetailChat = () => {
             privateKeyRef.current = await resetKeyPair(myHash, uploadPublicKey)
             plainCache.current.clear()
             setKeyState("ready")
-            toast.success("Kunci enkripsi baru dibuat")
+            toast.success("New encryption key created")
         } catch (err) {
             console.error(err)
-            toast.error("Gagal membuat kunci baru")
+            toast.error("Failed to create a new key")
         }
     }
 
@@ -303,7 +303,7 @@ const DetailChat = () => {
             // public key diambil dari cache (hanya request ke server kalau cache sudah kedaluwarsa)
             const publicKeys = await getKeys()
             if (!publicKeys?.[myHash]) {
-                toast.error("Kunci enkripsi kamu belum siap")
+                toast.error("Your encryption key is not ready yet")
                 return
             }
 
@@ -314,7 +314,7 @@ const DetailChat = () => {
                 if (trusted && trusted !== fp) {
                     setOtherFp(fp)
                     setKeyChanged(true)
-                    toast.error("Kunci keamanan lawan bicara berubah")
+                    toast.error("The security key of the other user has changed")
                     return
                 }
             }
@@ -361,17 +361,22 @@ const DetailChat = () => {
     const displayName = otherUser?.displayName || truncateAddress(otherHash)
 
     const renderText = (m) => {
-        if (m.deletedAt) return "Pesan dihapus"
+        if (m.deletedAt) return "Message deleted"
         if (m.plain === null || m.plain === undefined) {
             if ((m.missingKeyFor || []).includes(myHash)) {
-                return "⏳ Pesan ini akan terbuka setelah pengirim membuka chat ini lagi"
+                return "⏳ This message will unlock after the sender opens this chat again"
             }
-            return "🔒 Pesan tidak bisa didekripsi di perangkat ini"
+            return "🔒 This message cannot be decrypted on this device"
         }
         return m.plain
     }
 
     const isUnreadable = (m) => !m.deletedAt && (m.plain === null || m.plain === undefined)
+
+    // Pesan yang tidak bisa didekripsi di perangkat ini (mis. kunci lama sudah diganti) disembunyikan.
+    // Pesan yang masih menunggu dibukakan pengirim (missingKeyFor) tetap tampil dengan penanda ⏳.
+    const isHidden = (m) => isUnreadable(m) && !(m.missingKeyFor || []).includes(myHash)
+    const visibleMessages = messages.filter((m) => !isHidden(m))
 
     return (
         <div className="flex flex-col gap-2 md:flex-row">
@@ -395,8 +400,8 @@ const DetailChat = () => {
 
                 {/* ---- banner status enkripsi ---- */}
                 {keyState === "ready" && !otherNoKey && !keyChanged && otherFp && (
-                    <p className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300" title="Bandingkan kode ini dengan lawan bicara untuk memastikan chat aman">
-                        🔒 Terenkripsi end-to-end · kode keamanan: {otherFp}
+                    <p className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300" title="Compare this code with the other person to make sure the chat is secure">
+                        🔒 End-to-end encrypted · security code: {otherFp}
                     </p>
                 )}
 
@@ -404,18 +409,18 @@ const DetailChat = () => {
                     <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
                         <p>
                             {keyState === "missing"
-                                ? "Perangkat ini belum memiliki kunci enkripsi akun kamu, jadi pesan tidak bisa dibaca atau dikirim dari sini."
-                                : "Kunci enkripsi di server berbeda dengan yang ada di perangkat ini (mungkin diganti dari perangkat lain)."}
+                                ? "This device does not have your account encryption key, so messages cannot be read or sent from here."
+                                : "The encryption key on the server is different from the one on this device (it may have been changed from another device)."}
                         </p>
                         <button onClick={handleResetKey} className="mt-2 cursor-pointer font-semibold underline">
-                            Buat kunci baru di perangkat ini
+                            Create a new key on this device
                         </button>
                     </div>
                 )}
 
                 {keyState === "error" && (
                     <div className="my-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-200">
-                        Gagal menyiapkan enkripsi. Muat ulang halaman, lalu coba lagi.
+                        Failed to set up encryption. Reload the page and try again.
                     </div>
                 )}
 
@@ -428,25 +433,25 @@ const DetailChat = () => {
                 {keyChanged && (
                     <div className="my-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-200">
                         <p>
-                            Kode keamanan {displayName} berubah (kode baru: {otherFp}). Bisa jadi dia ganti perangkat, tapi
-                            konfirmasi dulu lewat jalur lain sebelum melanjutkan.
+                            The security code for {displayName} has changed (new code: {otherFp}). They may have switched
+                            devices, but confirm through another channel before continuing.
                         </p>
                         <button onClick={handleTrustNewKey} className="mt-2 cursor-pointer font-semibold underline">
-                            Saya sudah verifikasi, percayai kunci baru
+                            I have verified it, trust the new key
                         </button>
                     </div>
                 )}
 
                 <div className="flex-1 overflow-y-auto py-3">
-                    {messages.length === 0 && (
-                        <p className="py-10 text-center text-xs text-gray-400 dark:text-gray-300">Belum ada pesan, mulai percakapan!</p>
+                    {visibleMessages.length === 0 && (
+                        <p className="py-10 text-center text-xs text-gray-400 dark:text-gray-300">No messages yet, start the conversation!</p>
                     )}
 
-                    {messages.map((m, i) => {
+                    {visibleMessages.map((m, i) => {
                         const mine = m.senderId === myHash
                         const date = toDate(m.createdAt)
-                        const prev = messages[i - 1]
-                        const next = messages[i + 1]
+                        const prev = visibleMessages[i - 1]
+                        const next = visibleMessages[i + 1]
                         const nextDate = toDate(next?.createdAt)
 
                         const newDay = !prev || dayKey(toDate(prev.createdAt)) !== dayKey(date)
@@ -500,7 +505,7 @@ const DetailChat = () => {
                         onChange={(e) => setText(e.target.value)}
                         maxLength={MAX_CHARS}
                         disabled={!canSend}
-                        placeholder={canSend ? "Kirim.." : keyState === "loading" ? "Menyiapkan enkripsi.." : `Pengiriman dinonaktifkan (${keyChanged ? "kode keamanan berubah" : keyState})`}
+                        placeholder={canSend ? "Send a message.." : keyState === "loading" ? "Setting up encryption.." : `Sending disabled (${keyChanged ? "security code changed" : keyState})`}
                         className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-gray-400"
                     />
 

@@ -228,39 +228,49 @@ const Wallet = () => {
         setOpeningChat(true)
 
         try {
-            const me = await dataUser(address)
-            const keyResult = await ensureKeyPair(
-                address,
-                me?.data?.publicKey || null,
-                async (publicKey) => {
-                    const res = await setPublicKey(publicKey)
-                    if (!res) throw new Error("Failed to upload public key")
-                }
-            )
+            // 1) siapkan kunci enkripsi di perangkat ini
+            let keyResult
+            try {
+                const me = await dataUser(address)
+                keyResult = await ensureKeyPair(
+                    address,
+                    me?.data?.publicKey || null,
+                    async (publicKey) => {
+                        const res = await setPublicKey(publicKey)
+                        console.log("[chat] setPublicKey response:", res)
+                        if (!res || res.error) throw new Error("upload public key gagal")
+                    }
+                )
+            } catch (err) {
+                console.error("[chat] gagal menyiapkan kunci:", err)
+                toast.error("Gagal menyiapkan kunci enkripsi: " + (err?.message || "unknown"))
+                return
+            }
 
             if (keyResult.status !== "ready") {
                 router.push(`/chat/${[address, hashAddress].sort().join("_")}`)
                 return
             }
 
+            // 2) buka chat
             const res = await openChat({ targetHash: hashAddress })
+            console.log("[chat] openChat response:", res)
 
             if (!res || res.error) {
-                const code = res?.data?.code
-                if (code === "TARGET_NO_PUBLIC_KEY") {
-                    toast.error("Pengguna ini belum mengaktifkan enkripsi")
-                } else if (code === "PUBLIC_KEY_REQUIRED") {
-                    toast.error("Aktifkan enkripsi di akun kamu dulu")
-                } else {
-                    toast.error(res?.data?.message || "Gagal membuka chat")
-                }
+                toast.error(
+                    res?.data?.message || res?.message || "Gagal membuka chat (server tidak merespons dengan benar)"
+                )
+                return
+            }
+            if (!res.data?.chatId) {
+                toast.error("Gagal membuka chat: chatId tidak ditemukan di response")
                 return
             }
 
             router.push(`/chat/${res.data.chatId}`)
         } catch (err) {
-            console.error(err)
-            toast.error("Gagal membuka chat")
+            console.error("[chat] error tak terduga:", err)
+            toast.error("Gagal membuka chat: " + (err?.message || "unknown"))
         } finally {
             setOpeningChat(false)
         }

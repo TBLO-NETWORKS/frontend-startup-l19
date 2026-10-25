@@ -421,8 +421,7 @@ const DetailChat = () => {
 
                 {otherNoKey && (
                     <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-                        {displayName} belum mengaktifkan enkripsi. Kamu tetap bisa mengirim pesan; pesannya baru terbuka
-                        untuk dia setelah dia membuka aplikasi dan kamu membuka chat ini lagi.
+                        chat encrypted with end to end encryption
                     </div>
                 )}
 

@@ -1,11 +1,14 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Cookies from "js-cookie"
 import { jwtDecode } from "jwt-decode"
 import ConnectWallet from "@/components/connectWallet"
 import { listChats } from "@/services/chat"
 import { dataUser } from "@/services/user"
+import { decryptPreview, getLocalPrivateKey } from "@/lib/chatCrypto"
+
+const POLL_MS = 4000 // interval refresh daftar chat
 
 const ChatSkeleton = () => (
     <div className="flex items-center gap-3 px-2 py-2.5 animate-pulse">
@@ -24,6 +27,11 @@ const ListChats = () => {
     const [filter, setFilter] = useState("all")
     const [myHash, setMyHash] = useState("")
     const [profiles, setProfiles] = useState({})
+    const [previews, setPreviews] = useState({}) // chatId -> teks preview (sudah didekripsi) / null kalau tidak terbaca
+    const [keyReady, setKeyReady] = useState(false)
+
+    const privateKeyRef = useRef(null)
+    const previewCache = useRef(new Map()) // chatId -> { sig, text }
 
     useEffect(() => {
         const token = Cookies.get("token")
@@ -36,11 +44,97 @@ const ListChats = () => {
         }
     }, [])
 
+    // Ambil daftar chat sekarang, lalu refresh otomatis tiap POLL_MS (berhenti saat tab tidak aktif)
     useEffect(() => {
-        listChats()
-            .then((res) => setChats(res?.data?.data || res?.data || []))
-            .finally(() => setLoading(false))
+        let active = true
+        let busy = false
+
+        const fetchChats = async () => {
+            if (busy) return
+            busy = true
+            try {
+                const res = await listChats()
+                if (!active || !res || res.error) return // request gagal: jangan kosongkan daftar yang sudah ada
+                const data = res?.data?.data || res?.data
+                if (Array.isArray(data)) setChats(data)
+            } catch (err) {
+                console.error(err)
+            } finally {
+                busy = false
+                if (active) setLoading(false)
+            }
+        }
+
+        const onVisible = () => {
+            if (document.visibilityState === "visible") fetchChats()
+        }
+
+        fetchChats()
+        const timer = setInterval(onVisible, POLL_MS)
+        document.addEventListener("visibilitychange", onVisible)
+
+        return () => {
+            active = false
+            clearInterval(timer)
+            document.removeEventListener("visibilitychange", onVisible)
+        }
     }, [])
+
+    // Private key lokal (untuk mendekripsi preview pesan terakhir)
+    useEffect(() => {
+        if (!myHash) return
+        let active = true
+
+        getLocalPrivateKey(myHash)
+            .then((key) => {
+                if (!active) return
+                privateKeyRef.current = key
+                setKeyReady(true)
+            })
+            .catch((err) => {
+                console.error(err)
+                if (active) setKeyReady(true) // preview akan tampil sebagai "Encrypted message"
+            })
+
+        return () => { active = false }
+    }, [myHash])
+
+    // Dekripsi preview pesan terakhir (hanya yang baru atau yang kuncinya berubah)
+    useEffect(() => {
+        if (!myHash || !keyReady || chats.length === 0) return
+        let active = true
+
+        ;(async () => {
+            for (const c of chats) {
+                const last = c.lastMessage
+                if (!last) continue
+
+                const keyForMe = last.keys?.[myHash]
+                const sig = `${last.messageId || toDate(last.createdAt)?.getTime() || ""}:${keyForMe ? keyForMe.slice(0, 24) : "none"}`
+                if (previewCache.current.get(c.id)?.sig === sig) continue
+
+                let text = null
+                try {
+                    text = await decryptPreview(c, myHash, privateKeyRef.current)
+                } catch (err) {
+                    console.error(err)
+                }
+                previewCache.current.set(c.id, { sig, text })
+            }
+
+            if (!active) return
+
+            const next = {}
+            previewCache.current.forEach((v, id) => { next[id] = v.text })
+            setPreviews((prev) => {
+                const keys = Object.keys(next)
+                const same = keys.length === Object.keys(prev).length && keys.every((k) => prev[k] === next[k])
+                return same ? prev : next
+            })
+        })()
+
+        return () => { active = false }
+    }, [chats, myHash, keyReady])
 
     useEffect(() => {
         if (!myHash || chats.length === 0) return
@@ -91,6 +185,14 @@ const ListChats = () => {
     const initialOf = (c) => {
         const name = profiles[otherOf(c)]?.displayName
         return name ? name.charAt(0).toUpperCase() : "?"
+    }
+
+    const previewOf = (c) => {
+        if (!c.lastMessage) return "Mulai percakapan"
+        const p = previews[c.id]
+        if (p === undefined) return "" // masih didekripsi
+        if (p === null) return "Encrypted message" // tidak bisa dibaca di perangkat ini
+        return p
     }
 
     const unreadCount = chats.filter(isUnread).length
@@ -174,7 +276,7 @@ const ListChats = () => {
 
                                         <div className="mt-0.5 flex items-center justify-between gap-2">
                                             <p className={`truncate text-xs ${unread ? "font-medium text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-300"}`}>
-                                                {c.lastMessage?.text || "Mulai percakapan"}
+                                                {previewOf(c)}
                                             </p>
                                             {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
                                         </div>

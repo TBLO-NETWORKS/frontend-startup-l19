@@ -81,7 +81,8 @@ const DetailChat = () => {
     const bottomRef = useRef(null)
     const lastMarkedRef = useRef("")
 
-    const otherHash = chatId ? String(chatId).split("_").find((h) => h !== myHash) : ""
+    // tunggu myHash siap; kalau tidak, hash milik sendiri bisa terambil sebagai "lawan bicara"
+    const otherHash = chatId && myHash ? String(chatId).split("_").find((h) => h !== myHash) : ""
     // lawan bicara yang belum punya kunci TIDAK memblokir pengiriman
     const canSend = keyState === "ready" && !keyChanged
 
@@ -98,10 +99,17 @@ const DetailChat = () => {
     }, [])
 
     useEffect(() => {
+        setOtherUser(null) // jangan tampilkan data lawan bicara sebelumnya
         if (!otherHash) return
+        let active = true
+
         dataUser(otherHash).then((res) => {
-            if (res) setOtherUser(res.data)
+            if (active && res) setOtherUser(res.data)
         })
+
+        return () => {
+            active = false
+        }
     }, [otherHash])
 
     // 1) Siapkan keypair perangkat ini (buat + upload public key kalau belum ada)

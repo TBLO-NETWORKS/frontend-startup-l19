@@ -399,9 +399,12 @@ const DetailChat = () => {
                 </div>
 
                 {/* ---- banner status enkripsi ---- */}
-                {keyState === "ready" && !otherNoKey && !keyChanged && otherFp && (
-                    <p className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300" title="Compare this code with the other person to make sure the chat is secure">
-                        🔒 End-to-end encrypted · security code: {otherFp}
+                {keyState === "ready" && !keyChanged && (otherFp || otherNoKey) && (
+                    <p
+                        className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300"
+                        title={!otherNoKey ? "Compare this code with the other person to make sure the chat is secure" : undefined}
+                    >
+                        🔒 End-to-end encrypted{!otherNoKey && otherFp ? ` · security code: ${otherFp}` : ""}
                     </p>
                 )}
 
@@ -421,12 +424,6 @@ const DetailChat = () => {
                 {keyState === "error" && (
                     <div className="my-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-200">
                         Failed to set up encryption. Reload the page and try again.
-                    </div>
-                )}
-
-                {otherNoKey && (
-                    <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-                        chat encrypted with end to end encryption
                     </div>
                 )}
 

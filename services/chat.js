@@ -1,6 +1,6 @@
 import callApi from "@/lib/api";
 
-const ROOT_API = "https://samuraiposeidon.vercel.app"
+const ROOT_API = "http://localhost:8000"
 
 export async function listChats() {
     const url = `${ROOT_API}/chat/chats`
@@ -47,6 +47,17 @@ export async function markRead(chatId) {
         url,
         method: "PUT",
         token: true
+    })
+}
+
+// data = { userId, key }  -> melengkapi kunci pesan untuk lawan bicara yang tadinya belum punya public key
+export async function addMessageKey(chatId, messageId, data) {
+    const url = `${ROOT_API}/chat/chats/${chatId}/messages/${messageId}/key`
+    return callApi({
+        url,
+        method: "PUT",
+        token: true,
+        data
     })
 }
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import ConnectWallet from "@/components/connectWallet"
-import { getMessages, sendMessage, markRead, getChatKeys } from "@/services/chat"
+import { getMessages, sendMessage, markRead, getChatKeys, addMessageKey } from "@/services/chat"
 import { dataUser, setPublicKey } from "@/services/user"
 import {
     ensureKeyPair,
@@ -13,9 +13,10 @@ import {
     encryptMessage,
     decryptMessage,
     fingerprint,
+    rewrapKey,
 } from "@/lib/chatCrypto"
 
-const MAX_CHARS = 4000
+const MAX_CHARS = 4000 // jaga ciphertext tetap di bawah batas server (16KB base64)
 
 const truncateAddress = (address, start = 6, end = 12) => {
     if (!address) return ""
@@ -27,7 +28,7 @@ const toDate = (ts) => {
     if (!ts) return null
     if (typeof ts === "string" || typeof ts === "number") return new Date(ts)
     const s = ts._seconds ?? ts.seconds
-    return s != null ? new Date(s * 1000) : null
+    return s ? new Date(s * 1000) : null
 }
 
 const formatTime = (d) =>
@@ -43,32 +44,6 @@ const uploadPublicKey = async (publicKey) => {
     if (!res) throw new Error("Failed to upload public key")
 }
 
-// Mencegah pesan server dan pesan optimistis ditampilkan bersamaan.
-// Pesan sementara hanya dihapus jika ada kecocokan pengirim dan isi.
-const mergeMessages = (serverMessages, currentMessages) => {
-    const serverIds = new Set(serverMessages.map((m) => m.id))
-
-    const pendingMessages = currentMessages.filter((m) => {
-        if (!String(m.id).startsWith("temp-")) return false
-
-        const existsOnServer = serverMessages.some(
-            (serverMessage) =>
-                serverMessage.senderId === m.senderId &&
-                serverMessage.plain === m.plain
-        )
-
-        return !existsOnServer && !serverIds.has(m.id)
-    })
-
-    return [...serverMessages, ...pendingMessages]
-}
-
-const MessageSkeleton = ({ mine, width }) => (
-    <div className={`mb-3 flex px-1 ${mine ? "justify-end" : "justify-start"}`}>
-        <div className={`h-4 rounded bg-gray-200 dark:bg-gray-700 ${width}`}></div>
-    </div>
-)
-
 const DetailChat = () => {
     const router = useRouter()
     const { chatId } = router.query
@@ -76,78 +51,75 @@ const DetailChat = () => {
     const [myHash, setMyHash] = useState("")
     const [otherUser, setOtherUser] = useState(null)
     const [messages, setMessages] = useState([])
-    const [loadingMessages, setLoadingMessages] = useState(true)
     const [text, setText] = useState("")
     const [sending, setSending] = useState(false)
 
+    // ---- state enkripsi ----
+    // keyState: loading | ready | missing | mismatch | error
     const [keyState, setKeyState] = useState("loading")
     const [otherNoKey, setOtherNoKey] = useState(false)
     const [otherFp, setOtherFp] = useState("")
     const [keyChanged, setKeyChanged] = useState(false)
 
     const privateKeyRef = useRef(null)
-    const plainCache = useRef(new Map())
+    const plainCache = useRef(new Map()) // id pesan -> teks hasil dekripsi
+    const keysCacheRef = useRef({ at: 0, keys: null }) // cache public key peserta chat
+    const pendingRef = useRef([]) // pesan optimistic yang belum muncul dari server
+    const rewrapBusy = useRef(false)
+
+    const KEYS_TTL = 60_000
+    const getKeys = async () => {
+        const c = keysCacheRef.current
+        if (c.keys && Date.now() - c.at < KEYS_TTL) return c.keys
+
+        const res = await getChatKeys(chatId)
+        const keys = res?.data?.publicKeys || null
+        if (keys) keysCacheRef.current = { at: Date.now(), keys }
+        return keys
+    }
+
     const bottomRef = useRef(null)
     const lastMarkedRef = useRef("")
-    const sendingRef = useRef(false)
 
-    const otherHash = chatId
-        ? String(chatId).split("_").find((h) => h !== myHash)
-        : ""
-
-    const canSend = keyState === "ready" && !otherNoKey && !keyChanged
-    const showSkeleton = loadingMessages && (keyState === "loading" || keyState === "ready")
+    const otherHash = chatId ? String(chatId).split("_").find((h) => h !== myHash) : ""
+    // lawan bicara yang belum punya kunci TIDAK memblokir pengiriman
+    const canSend = keyState === "ready" && !keyChanged
 
     useEffect(() => {
         const token = Cookies.get("token")
-        if (!token) return
-
-        try {
-            const payload = jwtDecode(atob(token))
-            setMyHash(payload.hash)
-        } catch (err) {
-            console.error(err)
+        if (token) {
+            try {
+                const payload = jwtDecode(atob(token))
+                setMyHash(payload.hash)
+            } catch (err) {
+                console.error(err)
+            }
         }
     }, [])
 
     useEffect(() => {
         if (!otherHash) return
-
-        let active = true
-
-        dataUser(otherHash)
-            .then((res) => {
-                if (active && res) setOtherUser(res.data)
-            })
-            .catch(console.error)
-
-        return () => {
-            active = false
-        }
+        dataUser(otherHash).then((res) => {
+            if (res) setOtherUser(res.data)
+        })
     }, [otherHash])
 
-    // Siapkan pasangan kunci perangkat
+    // 1) Siapkan keypair perangkat ini (buat + upload public key kalau belum ada)
     useEffect(() => {
         if (!myHash) return
-
         let active = true
 
         ;(async () => {
             try {
                 const me = await dataUser(myHash)
-                const result = await ensureKeyPair(
-                    myHash,
-                    me?.data?.publicKey || null,
-                    uploadPublicKey
-                )
-
+                const result = await ensureKeyPair(myHash, me?.data?.publicKey || null, uploadPublicKey)
                 if (!active) return
 
                 if (result.status === "ready") {
                     privateKeyRef.current = result.privateKey
                     setKeyState("ready")
                 } else {
-                    setKeyState(result.status)
+                    setKeyState(result.status) // missing | mismatch
                 }
             } catch (err) {
                 console.error(err)
@@ -160,43 +132,35 @@ const DetailChat = () => {
         }
     }, [myHash])
 
-    // Periksa public key lawan bicara
+    // 2) Cek public key lawan bicara + deteksi perubahan kunci (trust on first use)
     useEffect(() => {
         if (!chatId || !otherHash || keyState !== "ready") return
-
         let active = true
 
         ;(async () => {
-            try {
-                const res = await getChatKeys(chatId)
-                const otherKey = res?.data?.publicKeys?.[otherHash]
+            const res = await getChatKeys(chatId)
+            const otherKey = res?.data?.publicKeys?.[otherHash]
+            if (!active) return
 
-                if (!active) return
+            if (res?.data?.publicKeys) {
+                keysCacheRef.current = { at: Date.now(), keys: res.data.publicKeys }
+            }
 
-                if (!otherKey) {
-                    setOtherNoKey(true)
-                    return
-                }
+            if (!otherKey) {
+                setOtherNoKey(true)
+                return
+            }
 
-                setOtherNoKey(false)
+            setOtherNoKey(false)
+            const fp = await fingerprint(otherKey)
+            if (!active) return
+            setOtherFp(fp)
 
-                const fp = await fingerprint(otherKey)
-                if (!active) return
-
-                setOtherFp(fp)
-
-                const trusted = localStorage.getItem(`fp:${otherHash}`)
-
-                if (!trusted) {
-                    localStorage.setItem(`fp:${otherHash}`, fp)
-                    setKeyChanged(false)
-                } else if (trusted !== fp) {
-                    setKeyChanged(true)
-                } else {
-                    setKeyChanged(false)
-                }
-            } catch (err) {
-                console.error("Gagal memeriksa kunci lawan bicara:", err)
+            const trusted = localStorage.getItem(`fp:${otherHash}`)
+            if (!trusted) {
+                localStorage.setItem(`fp:${otherHash}`, fp)
+            } else if (trusted !== fp) {
+                setKeyChanged(true)
             }
         })()
 
@@ -205,82 +169,89 @@ const DetailChat = () => {
         }
     }, [chatId, otherHash, keyState])
 
-    // Ambil pesan secara berkala dan gabungkan tanpa menduplikasi
+    // 3) Ambil + dekripsi pesan (polling)
     useEffect(() => {
         if (!chatId || !myHash || keyState !== "ready") return
-
         let active = true
-        let fetching = false
 
-        const decodeAll = async (rows) =>
+        const decodeAll = (rows) =>
             Promise.all(
                 rows.map(async (m) => {
-                    if (!m.encrypted) {
-                        return { ...m, plain: m.text ?? "" }
-                    }
+                    if (!m.encrypted) return { ...m, plain: m.text ?? "" } // pesan lama (belum terenkripsi)
+                    if (plainCache.current.has(m.id)) return { ...m, plain: plainCache.current.get(m.id) }
 
-                    if (plainCache.current.has(m.id)) {
-                        return {
-                            ...m,
-                            plain: plainCache.current.get(m.id),
-                        }
-                    }
-
-                    try {
-                        const plain = await decryptMessage(
-                            m,
-                            privateKeyRef.current
-                        )
-
-                        if (plain !== null) {
-                            plainCache.current.set(m.id, plain)
-                        }
-
-                        return { ...m, plain }
-                    } catch (err) {
-                        console.error("Gagal mendekripsi pesan:", err)
-                        return { ...m, plain: null }
-                    }
+                    const plain = await decryptMessage(m, privateKeyRef.current)
+                    if (plain !== null) plainCache.current.set(m.id, plain)
+                    return { ...m, plain }
                 })
             )
 
-        const fetchMessages = async () => {
-            if (fetching) return
-            fetching = true
+        // Lengkapi kunci pesan-pesan KITA yang tadinya belum bisa dibuka lawan bicara
+        const rewrapPending = async (list) => {
+            if (rewrapBusy.current) return
 
+            const todo = list.filter(
+                (m) =>
+                    m.senderId === myHash &&
+                    m.encrypted &&
+                    m.key &&
+                    (m.missingKeyFor || []).includes(otherHash)
+            )
+            if (todo.length === 0) return
+
+            rewrapBusy.current = true
             try {
-                const res = await getMessages(chatId)
-                if (!active || !res) return
+                const keys = await getKeys() // memakai cache; refresh otomatis tiap 60 detik
+                const otherKey = keys?.[otherHash]
+                if (!otherKey) return // lawan bicara masih belum aktif
 
-                const rows = [...(res.data || [])].reverse()
-                const list = await decodeAll(rows)
+                const fp = await fingerprint(otherKey)
+                const trusted = localStorage.getItem(`fp:${otherHash}`)
+                if (trusted && trusted !== fp) {
+                    setOtherFp(fp)
+                    setKeyChanged(true)
+                    return
+                }
+                if (!trusted) localStorage.setItem(`fp:${otherHash}`, fp)
+                setOtherFp(fp)
+                setOtherNoKey(false)
 
-                if (!active) return
-
-                setMessages((prev) => mergeMessages(list, prev))
-
-                const last = list[list.length - 1]
-
-                if (
-                    last &&
-                    last.senderId !== myHash &&
-                    lastMarkedRef.current !== last.id
-                ) {
-                    lastMarkedRef.current = last.id
-                    markRead(chatId)
+                for (const m of todo) {
+                    const wrapped = await rewrapKey(m, privateKeyRef.current, otherKey)
+                    if (!wrapped) continue
+                    await addMessageKey(chatId, m.id, { userId: otherHash, key: wrapped })
                 }
             } catch (err) {
-                console.error("Gagal mengambil pesan:", err)
+                console.error(err)
             } finally {
-                fetching = false
-                if (active) setLoadingMessages(false)
+                rewrapBusy.current = false
             }
         }
 
+        const fetchMessages = async () => {
+            const res = await getMessages(chatId)
+            if (!active || !res) return
+
+            const serverList = await decodeAll([...(res.data || [])].reverse())
+            if (!active) return
+
+            // pesan optimistic yang sudah ada di server dibuang; sisanya tetap ditampilkan
+            const serverIds = new Set(serverList.map((m) => m.id))
+            pendingRef.current = pendingRef.current.filter((p) => !serverIds.has(p.id))
+            const list = [...serverList, ...pendingRef.current]
+            setMessages(list)
+
+            const last = list[list.length - 1]
+            if (last && last.senderId !== myHash && lastMarkedRef.current !== last.id) {
+                lastMarkedRef.current = last.id
+                markRead(chatId)
+            }
+
+            rewrapPending(serverList)
+        }
+
         fetchMessages()
-
         const timer = setInterval(fetchMessages, 5000)
-
         return () => {
             active = false
             clearInterval(timer)
@@ -295,7 +266,6 @@ const DetailChat = () => {
         const ok = window.confirm(
             "Membuat kunci baru akan membuat pesan lama TIDAK bisa dibaca lagi di semua perangkat. Lanjutkan?"
         )
-
         if (!ok) return
 
         try {
@@ -316,122 +286,66 @@ const DetailChat = () => {
 
     const handleSend = async (e) => {
         e.preventDefault()
-
         const value = text.trim()
+        if (!value || sending || !canSend) return
 
-        // Ref berubah langsung, sehingga klik berulang tidak memulai
-        // pengiriman kedua sebelum React memperbarui state.
-        if (
-            !value ||
-            sendingRef.current ||
-            !canSend ||
-            !chatId
-        ) {
-            return
-        }
-
-        sendingRef.current = true
         setSending(true)
-
-        const tempId = `temp-${Date.now()}-${Math.random()}`
-
-        const optimisticMessage = {
-            id: tempId,
-            senderId: myHash,
-            plain: value,
-            createdAt: new Date(),
-            encrypted: true,
-            status: "sending",
-        }
-
-        setMessages((prev) => [...prev, optimisticMessage])
-        setText("")
-
+        let tempId = null
         try {
-            const keysRes = await getChatKeys(chatId)
-            const publicKeys = keysRes?.data?.publicKeys
-
-            if (!publicKeys?.[myHash] || !publicKeys?.[otherHash]) {
-                throw new Error("Enkripsi belum aktif untuk salah satu pengguna")
+            // public key diambil dari cache (hanya request ke server kalau cache sudah kedaluwarsa)
+            const publicKeys = await getKeys()
+            if (!publicKeys?.[myHash]) {
+                toast.error("Kunci enkripsi kamu belum siap")
+                return
             }
 
-            const fp = await fingerprint(publicKeys[otherHash])
-            const trusted = localStorage.getItem(`fp:${otherHash}`)
-
-            if (trusted && trusted !== fp) {
-                setOtherFp(fp)
-                setKeyChanged(true)
-                throw new Error("Kunci keamanan lawan bicara berubah")
+            // kalau lawan bicara sudah punya kunci, pastikan belum berubah sejak terakhir dipercaya
+            if (publicKeys[otherHash]) {
+                const fp = await fingerprint(publicKeys[otherHash])
+                const trusted = localStorage.getItem(`fp:${otherHash}`)
+                if (trusted && trusted !== fp) {
+                    setOtherFp(fp)
+                    setKeyChanged(true)
+                    toast.error("Kunci keamanan lawan bicara berubah")
+                    return
+                }
             }
+
+            // tampilkan pesan langsung (optimistic), jangan tunggu server
+            tempId = `tmp-${Date.now()}`
+            const optimistic = {
+                id: tempId,
+                senderId: myHash,
+                plain: value,
+                createdAt: Date.now(),
+                replyTo: null,
+                deletedAt: null,
+            }
+            pendingRef.current = [...pendingRef.current, optimistic]
+            setMessages((prev) => [...prev, optimistic])
+            setText("")
 
             const payload = await encryptMessage(value, publicKeys)
             const res = await sendMessage(chatId, payload)
+            if (!res) throw new Error("send failed")
 
-            if (!res) {
-                throw new Error("Gagal mengirim pesan")
-            }
-
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === tempId ? { ...m, status: "sent" } : m
-                )
-            )
-
-            // Sinkronisasi server. mergeMessages menghapus pesan sementara
-            // jika pesan yang sama sudah ditemukan di server.
-            try {
-                const refreshed = await getMessages(chatId)
-
-                if (refreshed) {
-                    const rows = [...(refreshed.data || [])].reverse()
-
-                    const list = await Promise.all(
-                        rows.map(async (m) => {
-                            if (!m.encrypted) {
-                                return { ...m, plain: m.text ?? "" }
-                            }
-
-                            if (plainCache.current.has(m.id)) {
-                                return {
-                                    ...m,
-                                    plain: plainCache.current.get(m.id),
-                                }
-                            }
-
-                            try {
-                                const plain = await decryptMessage(
-                                    m,
-                                    privateKeyRef.current
-                                )
-
-                                if (plain !== null) {
-                                    plainCache.current.set(m.id, plain)
-                                }
-
-                                return { ...m, plain }
-                            } catch (err) {
-                                console.error("Gagal mendekripsi pesan:", err)
-                                return { ...m, plain: null }
-                            }
-                        })
-                    )
-
-                    setMessages((prev) => mergeMessages(list, prev))
-                }
-            } catch (err) {
-                console.error("Background chat sync error:", err)
+            // ganti id sementara dengan id asli; plaintext di-cache supaya tidak perlu didekripsi lagi
+            const realId = res.data?.id
+            if (realId) {
+                plainCache.current.set(realId, value)
+                pendingRef.current = pendingRef.current.map((p) => (p.id === tempId ? { ...p, id: realId } : p))
+                setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, id: realId } : m)))
             }
         } catch (err) {
             console.error(err)
-
-            setMessages((prev) =>
-                prev.filter((m) => m.id !== tempId)
-            )
-
-            setText(value)
-            toast.error(err.message || "Gagal mengirim pesan")
+            toast.error("Failed to send message")
+            if (tempId) {
+                // gagal: tarik kembali pesan optimistic dan kembalikan teks ke input
+                pendingRef.current = pendingRef.current.filter((p) => p.id !== tempId)
+                setMessages((prev) => prev.filter((m) => m.id !== tempId))
+                setText(value)
+            }
         } finally {
-            sendingRef.current = false
             setSending(false)
         }
     }
@@ -441,35 +355,28 @@ const DetailChat = () => {
     const renderText = (m) => {
         if (m.deletedAt) return "Pesan dihapus"
         if (m.plain === null || m.plain === undefined) {
+            if ((m.missingKeyFor || []).includes(myHash)) {
+                return "⏳ Pesan ini akan terbuka setelah pengirim membuka chat ini lagi"
+            }
             return "🔒 Pesan tidak bisa didekripsi di perangkat ini"
         }
         return m.plain
     }
 
-    const isUnreadable = (m) =>
-        !m.deletedAt && (m.plain === null || m.plain === undefined)
+    const isUnreadable = (m) => !m.deletedAt && (m.plain === null || m.plain === undefined)
 
     return (
         <div className="flex flex-col gap-2 md:flex-row">
             <div className="flex h-screen w-full flex-col border-0 px-2 md:w-2/3 md:border-r dark:border-gray-700 text-gray-900 dark:text-white transition-colors">
                 <div className="grid grid-cols-[2rem_1fr_2rem] items-center border-b border-gray-100 dark:border-gray-700 py-3">
-                    <button
-                        onClick={() => router.back()}
-                        aria-label="Back"
-                        className="cursor-pointer text-gray-900 dark:text-white"
-                    >
+                    <button onClick={() => router.back()} aria-label="Back" className="cursor-pointer text-gray-900 dark:text-white">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M15 18l-6-6 6-6" />
                         </svg>
                     </button>
 
-                    <Link
-                        href={otherHash ? `/${otherHash}` : "#"}
-                        className="flex items-center justify-center gap-1 truncate"
-                    >
-                        <h1 className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                            {displayName}
-                        </h1>
+                    <Link href={otherHash ? `/${otherHash}` : "#"} className="flex items-center justify-center gap-1 truncate">
+                        <h1 className="truncate text-sm font-semibold text-gray-900 dark:text-white">{displayName}</h1>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M9 18l6-6-6-6" />
                         </svg>
@@ -478,11 +385,9 @@ const DetailChat = () => {
                     <span />
                 </div>
 
+                {/* ---- banner status enkripsi ---- */}
                 {keyState === "ready" && !otherNoKey && !keyChanged && otherFp && (
-                    <p
-                        className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300"
-                        title="Bandingkan kode ini dengan lawan bicara untuk memastikan chat aman"
-                    >
+                    <p className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300" title="Bandingkan kode ini dengan lawan bicara untuk memastikan chat aman">
                         🔒 Terenkripsi end-to-end · kode keamanan: {otherFp}
                     </p>
                 )}
@@ -508,7 +413,8 @@ const DetailChat = () => {
 
                 {otherNoKey && (
                     <div className="my-2 rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-                        {displayName} belum mengaktifkan enkripsi. Kamu bisa mengirim pesan setelah dia membuka aplikasi.
+                        {displayName} belum mengaktifkan enkripsi. Kamu tetap bisa mengirim pesan; pesannya baru terbuka
+                        untuk dia setelah dia membuka aplikasi dan kamu membuka chat ini lagi.
                     </div>
                 )}
 
@@ -525,20 +431,8 @@ const DetailChat = () => {
                 )}
 
                 <div className="flex-1 overflow-y-auto py-3">
-                    {showSkeleton && (
-                        <div className="animate-pulse">
-                            <MessageSkeleton width="w-40" />
-                            <MessageSkeleton mine width="w-56" />
-                            <MessageSkeleton width="w-64" />
-                            <MessageSkeleton mine width="w-32" />
-                            <MessageSkeleton width="w-48" />
-                        </div>
-                    )}
-
-                    {!showSkeleton && messages.length === 0 && (
-                        <p className="py-10 text-center text-xs text-gray-400 dark:text-gray-300">
-                            Belum ada pesan, mulai percakapan!
-                        </p>
+                    {messages.length === 0 && (
+                        <p className="py-10 text-center text-xs text-gray-400 dark:text-gray-300">Belum ada pesan, mulai percakapan!</p>
                     )}
 
                     {messages.map((m, i) => {
@@ -548,19 +442,14 @@ const DetailChat = () => {
                         const next = messages[i + 1]
                         const nextDate = toDate(next?.createdAt)
 
-                        const newDay =
-                            !prev ||
-                            dayKey(toDate(prev.createdAt)) !== dayKey(date)
-
+                        const newDay = !prev || dayKey(toDate(prev.createdAt)) !== dayKey(date)
                         const showTime =
                             !next ||
                             next.senderId !== m.senderId ||
                             dayKey(nextDate) !== dayKey(date) ||
                             formatTime(nextDate) !== formatTime(date)
 
-                        const replied = m.replyTo
-                            ? messages.find((x) => x.id === m.replyTo)
-                            : null
+                        const replied = m.replyTo ? messages.find((x) => x.id === m.replyTo) : null
 
                         return (
                             <div key={m.id}>
@@ -574,9 +463,7 @@ const DetailChat = () => {
                                     {replied && (
                                         <div className="mb-1 flex max-w-[80%] items-stretch gap-2">
                                             <span className="w-0.5 rounded-full bg-blue-300 dark:bg-blue-400" />
-                                            <p className="truncate text-xs text-gray-400 dark:text-gray-300">
-                                                {replied.plain ?? ""}
-                                            </p>
+                                            <p className="truncate text-xs text-gray-400 dark:text-gray-300">{replied.plain ?? ""}</p>
                                         </div>
                                     )}
 
@@ -600,32 +487,18 @@ const DetailChat = () => {
                     <div ref={bottomRef} />
                 </div>
 
-                <form
-                    onSubmit={handleSend}
-                    className="flex items-center gap-3 rounded-full bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:shadow-md dark:shadow-black/40 px-4 py-2.5 mb-3 transition-colors"
-                >
+                <form onSubmit={handleSend} className="flex items-center gap-3 rounded-full bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:shadow-md dark:shadow-black/40 px-4 py-2.5 mb-3 transition-colors">
                     <input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         maxLength={MAX_CHARS}
                         disabled={!canSend}
-                        placeholder={
-                            canSend
-                                ? "Kirim.."
-                                : keyState === "loading"
-                                  ? "Menyiapkan enkripsi.."
-                                  : "Pengiriman dinonaktifkan"
-                        }
+                        placeholder={canSend ? "Kirim.." : keyState === "loading" ? "Menyiapkan enkripsi.." : "Pengiriman dinonaktifkan"}
                         className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-gray-400"
                     />
 
                     {text.trim() ? (
-                        <button
-                            type="submit"
-                            disabled={sending || !canSend}
-                            aria-label="Send"
-                            className="cursor-pointer text-blue-500 dark:text-blue-400 disabled:opacity-50"
-                        >
+                        <button type="submit" disabled={sending || !canSend} aria-label="Send" className="cursor-pointer text-blue-500 dark:text-blue-400 disabled:opacity-50">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M22 2L11 13" />
                                 <path d="M22 2l-7 20-4-9-9-4 20-7z" />

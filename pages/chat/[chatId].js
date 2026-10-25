@@ -399,13 +399,10 @@ const DetailChat = () => {
                 </div>
 
                 {/* ---- banner status enkripsi ---- */}
-                {keyState === "ready" && !keyChanged && (otherFp || otherNoKey) && (
-                    <p
-                        className="py-1 text-center text-[11px] text-gray-400 dark:text-gray-300"
-                        title={!otherNoKey ? "Compare this code with the other person to make sure the chat is secure" : undefined}
-                    >
-                        🔒 End-to-end encrypted{!otherNoKey && otherFp ? ` · security code: ${otherFp}` : ""}
-                    </p>
+                {keyState === "ready" && !keyChanged && (
+                    <div className="my-2 rounded-lg bg-yellow-50 p-3 text-center text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+                        End-to-end encrypted
+                    </div>
                 )}
 
                 {(keyState === "missing" || keyState === "mismatch") && (
